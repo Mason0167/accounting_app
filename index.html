@@ -1,0 +1,24 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Expenses</title>
+</head>
+
+<body>
+    <h1>My Expenses</h1>
+    <form method="POST">
+        Item: <input type="text" name="item" required>
+        Amount: <input type="number" step="0.01" name="amount" required>
+        <button type="submit">Add</button>
+    </form>
+    <ul>
+        {% for e in expenses %}
+        <li>{{ e[1] }}: ${{ e[2] }}</li>
+        {% endfor %}
+    </ul>
+</body>
+
+</html>
