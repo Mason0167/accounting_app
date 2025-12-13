@@ -1,15 +1,23 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Expenses</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
 
 <body>
     <h1>My Expenses</h1>
     <form method="POST">
+        Category:
+        <select id="options" name="options">
+            <option value="foods">Foods</option>
+            <option value="drinks">Drinks</option>
+            <option value="transportation">Transportation</option>
+            <option value="others">Others</option>
+        </select>
         Item: <input type="text" name="item" required>
         Amount: <input type="number" step="0.01" name="amount" required>
         <button type="submit">Add</button>

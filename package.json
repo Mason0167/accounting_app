@@ -1,0 +1,30 @@
+{
+  "name": "accounting_app",
+  "version": "1.0.0",
+  "description": "A simple mobile expense tracker built with Python Flask.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mason0167/accounting_app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mason0167/accounting_app/issues"
+  },
+  "homepage": "https://github.com/Mason0167/accounting_app#readme",
+  "devDependencies": {
+    "@eslint/css": "^0.14.1",
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
+    "htmlhint": "^1.8.0",
+    "prettier": "3.7.4",
+    "stylelint": "^16.26.1",
+    "stylelint-config-standard": "^39.0.1"
+  }
+}

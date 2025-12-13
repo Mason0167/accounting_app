@@ -1,0 +1,15 @@
+# Node.js / VS Code 忽略檔案
+node_modules/
+.vscode/
+*.log
+.eslintcache
+.DS_Store
+
+# 自動生成的檔案
+*.pyc
+__pycache__/
+
+# 前端格式化工具設定檔（如果你不想 push）
+.stylelintrc.json
+.prettierrc
+eslint.config.mjs

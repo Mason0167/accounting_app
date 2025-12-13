@@ -9,4 +9,4 @@ A simple mobile expense tracker built with Python Flask.
 ## Requirements
 - Python 3.14.2
 - Flask
-- MySQL
+- SQLite
