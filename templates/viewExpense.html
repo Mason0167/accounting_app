@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Expenses</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1>All Expenses</h1>
+
+        <!-- Trip 篩選下拉 -->
+        <form method="GET" class="form-box">
+            <label>
+                Select Trip:
+                <select name="trip_id" onchange="this.form.submit()">
+                    <option value="">All Trips</option>
+                    {% for trip in trips %}
+                    <option value="{{ trip[0] }}" {% if selected_trip==trip[0]|string %}selected{% endif %}>
+                        {{ trip[1] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+        </form>
+
+        <!-- 支出列表 -->
+        <!-- {% set current_category = None %}
+            {% for e in expenses %}
+                {% if e[4] != current_category %}
+                    {% set current_category = e[4] %}
+                    <h3>{{current_category|capitalize}}</h3>
+                {% endif %}
+            <p>
+                {{ e[2] }}: ${{ e[3] }}
+            </p>
+            {% else %}
+            <p>No expenses found.</p>
+            {% endfor %} -->
+
+        <a href="{{ url_for('index') }}">
+            <button type="button" class="btn btn-large">Back to Home</button>
+        </a>
+
+        <a href="{{ url_for('tripSelection') }}">
+            <button type="button" class="btn btn-large">Back to Trips</button>
+        </a>
+    </div>
+</body>
+
+</html>
