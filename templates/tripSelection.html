@@ -23,26 +23,29 @@
         <h1>Trips</h1>
 
         <!-- 新增旅遊表單 -->
-        <form method="POST" class="form-box" id="trip-form">
+        <form method="POST" class="form-box" id="trip-form" novalidate>
             <label>Trip Name</label>
             <input type="text" name="trip_name" class="input-field"
-                placeholder="New Trip Name" required>
+                placeholder="New Trip Name"
+                value="{{ entered_trip_name|default('') }}">
                 
             <label>Start Date</label>
-            <input type="date" name="start_date" class="input-field" required>
+            <input type="date" name="start_date" class="input-field"
+                value="{{ entered_start_date|default('') }}">
 
             <label>End Date</label>
-            <input type="date" name="end_date" class="input-field" required>
+            <input type="date" name="end_date" class="input-field"
+                value="{{ entered_start_date|default('') }}">
            
             <button type="submit" class="btn btn-large">Add New Trip</button>
         </form>
 
-        <!-- 顯示旅遊列表 -->
+        <!-- Display Trip Lists -->
         <ul class="expense-list">
             {% for trip in trips %}
             <li class="trip-item">
                 <div class="trip-info">
-                    <span class="trip-name">{{ trip[1] }}</span>
+                    <span class="trip-name">{{ trip[1]|title }}</span>
                     <span class="start_date">{{ trip[2] }}</span>
                     <span class="end_date">{{ trip[3] }}</span>
                 </div>
@@ -61,23 +64,34 @@
             </li>
             {% endfor %}
         </ul>
+
         <a href="{{ url_for('index') }}">
             <button type="button" class="btn btn-large">Back to Home</button>
         </a>
     </div>
 
-    <div id="deleteModal" class="modal">
+    <!-- Flexible Modal for Delete / Errors -->
+    <div id="flexModal" class="modal">
         <div class="modal-content">
-            <p id="modal-text">Are you sure you want to delete this trip?</p>
-            <form id="deleteForm" method="POST" action="">
-                <button type="submit" class="btn btn-confirm-delete" id="confirmDelete">Yes, Delete</button>
-                <button type="button" class="btn" onclick="closeDeleteModal()">Cancel</button>
+            <p id="modal-text"></p>
+            <form id="modalForm" method="POST" style="display:none;">
+                <button type="submit" class="btn btn-confirm-delete" id="modalConfirmBtn">Yes, Delete</button>
+                <button type="button" class="btn" onclick="closeModal()">Cancel</button>
             </form>
-
+            <button type="button" class="btn" id="modalOkBtn" style="display:none;" onclick="closeModal()">OK</button>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/deleteTrip.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script>
+        // If there is an error message from Flask, show it on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            {% if modal_message %}
+            // |escape converts them to safe HTML entities.
+            openModal({type: 'error', text: "{{ modal_message|escape }}"}); 
+            {% endif %}
+        });
+    </script>
 </body>
 
 </html>

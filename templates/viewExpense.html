@@ -27,18 +27,21 @@
         </form>
 
         <!-- 支出列表 -->
-        <!-- {% set current_category = None %}
-            {% for e in expenses %}
-                {% if e[4] != current_category %}
-                    {% set current_category = e[4] %}
-                    <h3>{{current_category|capitalize}}</h3>
-                {% endif %}
-            <p>
-                {{ e[2] }}: ${{ e[3] }}
-            </p>
-            {% else %}
-            <p>No expenses found.</p>
-            {% endfor %} -->
+        {% if grouped_expenses %}
+            {% for category, items in grouped_expenses.items() %}
+                <h3>{{ category|capitalize }}</h3>
+
+                <ul class="expense-list">
+                    {% for e in items %}
+                        <li>
+                            {{ e[2] }} : ${{ "%.2f"|format(e[3]) }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+        {% else %}
+            <p>Please select a trip.</p>
+        {% endif %}
 
         <a href="{{ url_for('index') }}">
             <button type="button" class="btn btn-large">Back to Home</button>
