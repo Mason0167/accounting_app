@@ -4,13 +4,32 @@
 
 body {
     background-color: #fff;
-    font-family: 'Comic Sans MS', 'Comic Sans', sans-serif;
+    font-family: 'Noto Sans TC', sans-serif;    
     color: #4B0082;
     display: flex;
     justify-content: center;
     padding: 20px;
 }
 
+h1, h2, h3 {
+    font-family: 'Montserrat', sans-serif; /* 標題使用 Montserrat */
+}
+
+/* 按鈕字體 */
+button, .btn {
+    font-family: 'Montserrat', sans-serif;
+}
+
+input, select, textarea {
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+.total-cost {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    color: #800080; /* 深紫色 */
+    font-size: 1.1rem;
+}
 
 .container {
     width: 400px;
