@@ -44,20 +44,24 @@
         <ul class="expense-list">
             {% for trip in trips %}
             <li class="trip-item">
-                <div class="trip-info">
-                    <span class="trip-name">{{ trip[1]|title }}</span>
-                    <span class="start_date">{{ trip[2] }}</span>
-                    <span class="end_date">{{ trip[3] }}</span>
+                <div>
+                    <p class="trip-name">{{ trip['trip_name']|title }}</p>
+                </div>
+
+                <div class="trip-p">
+                    <p>From: {{ trip['start_date'] }}</p>
+                    <p>To: {{ trip['end_date'] }}</p>
+                    <p>Total Cost: {{ trip['total_in_base'] }} TWD</p>
                 </div>
 
                 <div class="trip-buttons">
-                    <a href="{{ url_for('newExpense', trip_id=trip[0]) }}">
+                    <a href="{{ url_for('newExpense', trip_id=trip['id']) }}">
                         <button type="button" class="btn btn-go">Add New Expense</button>
                     </a>
 
                     <button type="button" class="btn btn-delete" 
-                            data-id="{{ trip[0] }}" 
-                            data-name="{{ trip[1] }}">
+                            data-id="{{ trip['id'] }}" 
+                            data-name="{{ trip['trip_name'] }}">
                         Delete
                     </button>
                 </div>

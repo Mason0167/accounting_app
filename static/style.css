@@ -4,13 +4,13 @@
 
 body {
     background-color: #fff;
-    font-family: 'Comic Sans MS', cursive, sans-serif;
+    font-family: 'Comic Sans MS', 'Comic Sans', sans-serif;
     color: #4B0082;
-    /* 紫色文字 */
     display: flex;
     justify-content: center;
     padding: 20px;
 }
+
 
 .container {
     width: 400px;
@@ -60,6 +60,10 @@ input, select {
 .expense-list {
     list-style: none;
     padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* space between cards */
 }
 
 .expense-list li {
@@ -103,24 +107,30 @@ input, select {
 
 .trip-item {
     display: flex;
+    justify-content: space-between;
     flex-direction: column; /* 垂直排列 */
     align-items: flex-start; /* 左對齊內容 */
     background-color: #e6ccff;
-    margin: 8px 0;
-    padding: 12px;
+    margin: 0;
+    padding: 15px 20px;
     border-radius: 10px;
-    gap: 8px; /* span 和 button 之間的間距 */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.trip-info {
-    display: flex;
-    justify-content: space-between; /* span 左右分開 */
-    width: 100%;
+.trip-p{
+    margin: 5px 0;
+    color: #4b0082;
+}
+
+.trip-p p:last-child {
+    font-weight: bold;
+    color: #ff66b2; /* cute pink for Total Cost */
 }
 
 .trip-name {
     font-size: 1.1em;
     font-weight: bold;
+    margin: 0;
 }
 
 /* GO 按鈕加大 */
@@ -139,9 +149,9 @@ select {
 
 .input-field {
     width: 100%;
-    padding: 12px 14px;
+    padding: 8px 12px;
     font-size: 1em;
-    border-radius: 12px;
+    border-radius: 8px;
     border: 2px solid #d1a3ff;
     background-color: #ffffff;
     color: #4B0082;
@@ -176,13 +186,12 @@ select.input-field {
 }
 
 .form-box {
-    display: flex;
-    flex-direction: column;
-    gap: 12px; /* 控制 label 與 input 之間的間距 */
-    background-color: #ffffff;
-    padding: 15px;
+    background-color: #fff;
+    padding: 20px;
     border-radius: 12px;
-    box-shadow: inset 0 0 6px rgba(163, 102, 255, 0.15);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    max-width: 500px;
+    margin: 20px auto;
 }
 
 input[type="date"].input-field {
@@ -190,11 +199,48 @@ input[type="date"].input-field {
     color: #4B0082;
 }
 
-.flash-messages li {
-    color: red;
-    font-weight: bold;
-    margin-bottom: 8px;
-    font-size: 0.95em;
+/* Payment methods horizontally */
+.payment-methods {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.payment-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    background-color: #e6ccff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: background-color 0.2s;
+}
+
+.payment-option input {
+    display: none; /* hide radio circle */
+}
+
+.payment-option span {
+    pointer-events: none; /* so clicking text selects radio */
+}
+
+.payment-option input:checked + span {
+    background-color: #c080ff;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+/* Item & amount side by side */
+.item-amount-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.item-amount-group .field {
+    flex: 1;
 }
 
 .modal {
@@ -219,7 +265,6 @@ input[type="date"].input-field {
 .trip-buttons {
     display: flex;         /* horizontal alignment */
     gap: 10px;             /* space between buttons */
-    margin-top: 10px;      /* space from trip info above */
 }
 
 .btn-go, .btn-delete {
