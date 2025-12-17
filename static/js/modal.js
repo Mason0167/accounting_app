@@ -26,14 +26,28 @@ function closeModal() {
 
 // Attach Delete Button Events
 document.addEventListener('DOMContentLoaded', function () {
+    // Trip delete buttons
     document.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', () => {
             const tripId = btn.dataset.id;
             const tripName = btn.dataset.name;
             openModal({
                 type: 'delete',
-                text: `Are you sure you want to delete "${tripName}"?`,
+                text: `Are you sure you want to delete trip "${tripName}"?`,
                 formAction: `/deleteTrip/${tripId}`
+            });
+        });
+    });
+
+    // Expense delete buttons
+    document.querySelectorAll('.btn-delete-expense').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const expenseId = btn.dataset.id;
+            const itemName = btn.dataset.item;
+            openModal({
+                type: 'delete',
+                text: `Are you sure you want to delete expense "${itemName}"?`,
+                formAction: `/deleteExpense/${expenseId}`
             });
         });
     });

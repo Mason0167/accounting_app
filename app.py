@@ -100,6 +100,7 @@ def init_db():
     ''')
 
     default_exchange_rates = [
+        ('NTD', 1.0),
         ('JPY', 0.2004),
         ('KRW', 0.02114),
         ('VND', 0.001187),
@@ -195,9 +196,9 @@ def tripSelection():
             except sqlite3.IntegrityError:
                 modal_message = f'"{display_trip_name}" already exists!'
 
-        # Refresh trips after potential insertion
-        c.execute('SELECT * FROM trips ORDER BY start_date')
-        trips_list = c.fetchall()
+    # Refresh trips after potential insertion
+    c.execute('SELECT * FROM trips ORDER BY start_date')
+    trips_list = c.fetchall()
 
     # Calculate total expenses in base currency for each trip
     trips_with_total = []
@@ -328,26 +329,42 @@ def newExpense(trip_id):
             
             except sqlite3.IntegrityError:
                 modal_message = "Oh no! Something went wrong!"
+
     
-    #grouped_expenses = {}    
+    all_expenses = []
     # Fetch expenses only for selected trip
-    #if trip_id:
-        #c.execute('SELECT * FROM expenses WHERE trip_id = ? ORDER BY category_id', 
-                #(trip_id,))
-        #all_expenses = c.fetchall()
+    if trip_id:
+        c.execute('''
+                SELECT e.id, c.cat_name, e.item, e.amount, cu.code, cu.symbol
+                FROM expenses e
+                JOIN categories c ON e.category_id = c.id
+                JOIN currencies cu ON e.currency_id = cu.id
+                WHERE trip_id = ? 
+                ORDER BY c.order_index''', 
+                (trip_id,))
+        rows = c.fetchall()
 
-    # Group expenses by category
-    #for e in all_expenses:
-        #category = e[4]
-        #if category not in grouped_expenses:
-            #grouped_expenses[category] = []
-        #grouped_expenses[category].append(e)
-
-            
+        for e in rows:
+            all_expenses.append({
+              'id': e[0],
+              'category': e[1],
+              'item': e[2],
+              'amount': e[3],
+              'code': e[4],
+              'symbol': e[5]
+            })
+    
+    grouped_expenses = {}
+    
+    for e in all_expenses:
+        cat = e['category']
+        grouped_expenses.setdefault(cat, []).append(e)
+    
     conn.close()
+    
     return render_template(
         'newExpense.html', 
-        #grouped_expenses=grouped_expenses,
+        grouped_expenses=grouped_expenses,
         modal_message=modal_message,
         trip_name=trip_name, 
         categories_list=categories_list,
@@ -425,6 +442,20 @@ def deleteTrip(trip_id):
     conn.close()
 
     return redirect(url_for('tripSelection'))
+    
+    
+# deleteExpense
+@app.route('/deleteExpense/<int:expense_id>', methods=['POST'])
+def deleteExpense(expense_id):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    
+    # Delete expense
+    c.execute('DELETE FROM expenses WHERE id = ?', (expense_id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(request.referrer or url_for('tripSelection'))
     
 if __name__ == '__main__':
     init_db()
