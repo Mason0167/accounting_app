@@ -119,7 +119,6 @@
 
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
     <script>
-        // If there is an error message from Flask, show it on page load
         document.addEventListener('DOMContentLoaded', function () {
             {% if modal_message %}
             // |escape converts them to safe HTML entities.

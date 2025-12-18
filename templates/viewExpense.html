@@ -23,9 +23,9 @@
                 <select name="trip_id" onchange="this.form.submit()">
                     <option value="">All Trips</option>
                     {% for trip in trips %}
-                    <option value="{{ trip[0] }}" {% if selected_trip==trip[0]|string %}selected{% endif %}>
-                        {{ trip[1] }}
-                    </option>
+                        <option value="{{ trip.id }}" {% if selected_trip == trip.id %}selected{% endif %}>
+                        {{ trip.trip_name }}
+                        </option>
                     {% endfor %}
                 </select>
             </label>
@@ -33,19 +33,27 @@
 
         <!-- 支出列表 -->
         {% if grouped_expenses %}
-            {% for category, items in grouped_expenses.items() %}
-                <h3>{{ category|capitalize }}</h3>
-
+            {% for cat, expenses in grouped_expenses.items() %}
+                <h3>{{ cat|capitalize }}</h3>
                 <ul class="expense-list">
-                    {% for e in items %}
-                        <li>
-                            {{ e[2] }} : ${{ "%.2f"|format(e[3]) }}
+                    {% for e in expenses %}
+                        <li class="expense-row">
+                            <span class="expense-text">
+                                {{ e.item|capitalize }} : {{ e.code }} {{ e.symbol }}{{ "%.2f"|format(e.amount) }} 
+                            </span>
+
+                            <button type="button"
+                                    class="btn btn-delete-expense"
+                                    data-id="{{ e.id }}"
+                                    data-item="{{ e.item }}">
+                                Delete
+                            </button>
                         </li>
                     {% endfor %}
                 </ul>
             {% endfor %}
         {% else %}
-            <p>Please select a trip.</p>
+            <p>No Expense for this trip.</p>
         {% endif %}
 
         <a href="{{ url_for('index') }}">
@@ -56,6 +64,28 @@
             <button type="button" class="btn btn-large">Back to Trips</button>
         </a>
     </div>
+
+    <!-- Flexible Modal for Delete / Errors -->
+    <div id="flexModal" class="modal">
+        <div class="modal-content">
+            <p id="modal-text"></p>
+            <form id="modalForm" method="POST" style="display:none;">
+                <button type="submit" class="btn btn-confirm-delete" id="modalConfirmBtn">Yes, Delete</button>
+                <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+            </form>
+            <button type="button" class="btn" id="modalOkBtn" style="display:none;" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            {% if modal_message %}
+            // |escape converts them to safe HTML entities.
+            openModal({type: 'error', text: "{{ modal_message|escape }}"}); 
+            {% endif %}
+        });
+    </script>
 </body>
 
 </html>
