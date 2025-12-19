@@ -11,85 +11,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
 </head>
-
 <body>
     <div class="container">
-        <h1>Create New Trip</h1>
-
-        <!-- 新增旅遊表單 -->
+        <h1>Edit {{ trip_name|title }}</h1>
         <form method="POST" class="form-box" id="trip-form" novalidate>
             <label>Trip Name</label>
             <input type="text" name="trip_name" class="input-field"
-                placeholder="New Trip Name"
-                value="{{ entered_trip_name|default('') }}">
+                value="{{ trip_name }}">
                 
             <label>Start Date</label>
             <input type="date" name="start_date" class="input-field"
-                value="{{ entered_start_date|default('') }}">
+                value="{{ start_date }}">
 
             <label>End Date</label>
             <input type="date" name="end_date" class="input-field"
-                value="{{ entered_start_date|default('') }}">
+                value="{{ end_date }}">
            
-            <button type="submit" class="btn btn-submit">Add New Trip</button>
+            <button type="submit" class="btn btn-submit">Update Trip</button>
+            
+            <a href="{{ url_for('tripSelection') }}">
+                <button type="button" class="btn btn-submit">Cancel</button>
+            </a>
         </form>
-
-        <!-- Display Trip Lists -->
-        <ul class="trip-list">
-            {% for trip in trips %}
-            <li class="trip-card">
-
-                <!-- LEFT: Trip Info -->
-                <div class="trip-info">
-                    <h3 class="trip-name">{{ trip.trip_name|title }}</h3>
-
-                    <p class="trip-date">
-                        {{ trip.start_date }} → {{ trip.end_date }}
-                    </p>
-
-                    <p class="trip-total">
-                        Total: {{ "%.2f"|format(trip.total_in_base) }} TWD
-                    </p>
-                </div>
-
-                <!-- RIGHT: Actions -->
-                <div class="trip-buttons">
-                
-                    <a href="{{ url_for('editTrip', trip_id=trip.id) }}" class="btn btn-submit">
-                        Edit
-                    </a>
-
-                    <a href="{{ url_for('newExpense', trip_id=trip.id) }}" class="btn btn-submit">
-                        Add New Expense
-                    </a>
-
-                    <button
-                        type="button"
-                        class="btn btn-delete"
-                        data-id="{{ trip.id }}"
-                        data-name="{{ trip.trip_name }}"
-                    >
-                        Delete
-                    </button>
-                </div>
-
-            </li>
-            {% endfor %}
-        </ul>
-
-
-        <a href="{{ url_for('index') }}">
-            <button type="button" class="btn btn-large">Home</button>
-        </a>
     </div>
 
-    <!-- Flexible Modal for Delete / Errors -->
+<!-- Flexible Modal for Delete / Errors -->
     <div id="flexModal" class="modal">
         <div class="modal-content">
             <p id="modal-text"></p>
             <form id="modalForm" method="POST" style="display:none;">
                 <button type="submit" class="btn btn-cancel" id="modalConfirmBtn">Yes, Delete</button>
-                <button type="button" class="btn btn-submit" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn" onclick="closeModal()">Cancel</button>
             </form>
             <button type="button" class="btn" id="modalOkBtn" style="display:none;" onclick="closeModal()">OK</button>
         </div>
@@ -112,5 +64,3 @@
     });
     </script>
 </body>
-
-</html>
