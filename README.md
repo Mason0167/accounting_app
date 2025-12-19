@@ -20,10 +20,8 @@ Track your daily expenses, view totals, and manage trips easily.
 
 1. Clone the repository:
    ```bash
-   git clone [<your-repo-url>](https://github.com/Mason0167/accounting_app)
+   git clone https://github.com/Mason0167/accounting_app
    cd accounting_app
-   pip install -r requirements.txt
-   python app.py
    ```
    
 2. Install dependencies:
