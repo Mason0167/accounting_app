@@ -2,7 +2,6 @@
 A simple **mobile-friendly expense tracker** built with **Python** and **Flask**.  
 Track your daily expenses, view totals, and manage trips easily.
 
-
 ## Features
 - Add expenses with item name, amount, category, currency, and payment method
 - View a list of all expenses grouped by category
@@ -15,7 +14,7 @@ Track your daily expenses, view totals, and manage trips easily.
 - Python 3.14+
 - Flask
 - SQLite3
-- 
+
 ## Installation
 
 1. Clone the repository:
