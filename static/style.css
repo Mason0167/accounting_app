@@ -15,12 +15,6 @@ button, input, select, textarea {
     font-family: inherit;
 }
 
-.trip-total {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #ff66b2; /* cute pink for Total Cost */
-}
-
 .container {
     width: 400px;
     background-color: #f8f0ff;
@@ -51,30 +45,6 @@ input, select {
     border: 1px solid #ccc;
 }
 
-.trip-item {
-    display: flex;
-    justify-content: space-between;
-    flex-direction: column; /* 垂直排列 */
-    align-items: flex-start; /* 左對齊內容 */
-    background-color: #e6ccff;
-    margin: 0;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.trip-p{
-    margin: 5px 0;
-    color: #4b0082;
-    font-size: 0.9rem;
-}
-
-.trip-name {
-    font-size: 1.2em;
-    font-weight: bold;
-    margin: 0;
-}
-
 select {
     padding: 8px;
     border-radius: 8px;
@@ -92,13 +62,11 @@ select {
     color: #4B0082;
 }
 
-/* focus 狀態（點進去時） */
 .input-field:focus {
     border-color: #a366ff;
     box-shadow: 0 0 8px rgba(163, 102, 255, 0.4);
 }
 
-/* placeholder 顏色 */
 .input-field::placeholder {
     color: #b28cff;
 }
@@ -134,7 +102,31 @@ input[type="date"].input-field {
     color: #4B0082;
 }
 
-/* Payment methods horizontally */
+
+
+/* tripSelection Title */
+.trip-header {
+    display: flex;
+    justify-content: center; /* center horizontally */
+    align-items: center;     /* center vertically */
+    font-size: 1.5rem;
+    font-weight: bold;
+    gap: 10px;               /* space between dropdown and text */
+    margin: 20px 0;          /* vertical spacing */
+}
+
+.trip-header select {
+    font-size: 1.1rem;       /* make dropdown bigger */
+    padding: 5px 10px;
+}
+
+.trip-label {
+    font-size: 1.5rem;         /* match H1 */
+}
+
+
+
+/* Payment methods */
 .payment-methods {
     display: flex;
     gap: 10px;
@@ -167,6 +159,8 @@ input[type="date"].input-field {
     border-radius: 20px;
 }
 
+
+
 /* Item & amount side by side */
 .item-amount-group {
     display: flex;
@@ -178,6 +172,10 @@ input[type="date"].input-field {
     flex: 1;
 }
 
+
+
+
+/* Pop up msg */
 .modal {
     display: none; /* hidden by default */
     position: fixed;
@@ -197,11 +195,9 @@ input[type="date"].input-field {
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-.trip-buttons {
-    display: flex;         /* horizontal alignment */
-    gap: 10px;             /* space between buttons */
-}
 
+
+/* All buttons */
 .btn {
     background-color: #a366ff;
     color: white;
@@ -266,6 +262,37 @@ input[type="date"].input-field {
     border-radius: 6px;
 }
 
+
+
+/* Nav buttons */
+.button-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.btn-home {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-home .icon {
+    width: 15px;
+    height: 15px;
+}
+
+/* Equal width buttons */
+.btn-equal {
+    flex: 1;
+    padding: 10px 16px;
+}
+
+
+
 /* tripSelection Trips Cards */
 .trip-list {
     list-style: none;   /* Remove default list styles */
@@ -287,9 +314,27 @@ input[type="date"].input-field {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+.trip-date{
+    display: flex;
+}
+
+.trip-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 0;
+}
+
+.trip-total {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ff66b2; /* cute pink for Total Cost */
+}
+
+
+
 /* Button Group Layout */
 .trip-buttons {
-    display: flex;
+    display: flex;      /* horizontal alignment */
     gap: 10px;
     margin-top: 15px;
     width: 100%;
@@ -304,6 +349,8 @@ input[type="date"].input-field {
     flex-grow: 1;     /* 佔據所有剩餘空間 */
     text-align: center; /* 讓文字居中 */
 }
+
+
 
 /* newExpense Categories Cards */
 .categories-container {

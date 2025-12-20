@@ -14,10 +14,30 @@
 
 <body>
     <div class="container">
-        <h1>All Expenses</h1>
+        <div class="button-row">
+            <!-- Home button with house icon -->
+            <a href="{{ url_for('index') }}">
+                <button class="btn btn-home">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9z"/>
+                    </svg>
+                </button>
+            </a>
 
-        <!-- Trip 篩選下拉 -->
+            <a href="{{ url_for('tripSelection') }}">
+                <button type="button" class="btn btn-equal">Add New Trip</button>
+            </a>
+
+            <a href="{{ url_for('newExpense', trip_id=trip.id) }}">
+                <button type="button" class="btn btn-equal">Add New Expense</button>
+            </a>
+        </div>
+
+        <h1>View All Expenses</h1>
+        
         <form method="GET" class="form-box">
+            <!-- Trip Dropdown -->
             <label>
                 Select Trip:
                 <select name="trip_id" onchange="this.form.submit()">
@@ -29,8 +49,22 @@
                     {% endfor %}
                 </select>
             </label>
+
+            <!-- Date Dropdown -->
+            <label>
+                    Select Date:
+                    <select name="purchase_date" onchange="this.form.submit()">
+                        <option value="">All Purchase Date</option>
+                        {% for date in dates %}
+                            <option value="{{ date }}" {% if selected_date == date %}selected{% endif %}>
+                            {{ date }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
         </form>
 
+        <!-- Trip Info Card -->
         {% if trip %}
         <div class="category-card" style="margin-bottom: 20px;">
             <h3 class="trip-name">{{ trip.trip_name|title }}</h3>
@@ -42,10 +76,11 @@
             <p class="trip-total">
                 Total: {{ "%.2f"|format(total_in_base) }} TWD
             </p>
+
         </div>
         {% endif %}
 
-        <!-- 支出列表 -->
+        <!-- Expense Lists/Cards -->
         {% if grouped_expenses %}
             <div class="categories-container">
                 {% for cat, expenses in grouped_expenses.items() %}
@@ -73,19 +108,11 @@
             <p>No Expense for this trip.</p>
         {% endif %}
 
-        <a href="{{ url_for('index') }}">
-            <button type="button" class="btn btn-large">Home</button>
-        </a>
-
-        <a href="{{ url_for('tripSelection') }}">
-            <button type="button" class="btn btn-large">Trips / Expenses</button>
-        </a>
-
         <a href="{{ url_for('downloadBackup') }}">
         <button type="button" class="btn">
-            Download Backup
+            Download Expense Data
         </button>
-</a>
+        </a>
     </div>
 
     <!-- Flexible Modal for Delete / Errors -->
@@ -94,7 +121,7 @@
             <p id="modal-text"></p>
             <form id="modalForm" method="POST" style="display:none;">
                 <button type="submit" class="btn btn-cancel" id="modalConfirmBtn">Yes, Delete</button>
-                <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn btn-submit" onclick="closeModal()">Cancel</button>
             </form>
             <button type="button" class="btn" id="modalOkBtn" style="display:none;" onclick="closeModal()">OK</button>
         </div>

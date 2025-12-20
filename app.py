@@ -123,12 +123,15 @@ def init_db():
         # expenses table
         c.execute('''CREATE TABLE IF NOT EXISTS expenses (
                      id INTEGER PRIMARY KEY, 
+                     purchase_date TEXT,
+                     item TEXT, 
+                     amount REAL,
+                     
                      currency_id INTEGER,
                      method_id INTEGER, 
                      category_id INTEGER,
                      trip_id INTEGER,
-                     item TEXT, 
-                     amount REAL, 
+                  
                      FOREIGN KEY(currency_id) REFERENCES currensies(id),
                      FOREIGN KEY(method_id) REFERENCES paymentMethods(id),
                      FOREIGN KEY(category_id) REFERENCES categories(id),
@@ -232,105 +235,125 @@ def tripSelection():
 
     
 # newExpense
-@app.route('/newExpense/<int:trip_id>', methods=['GET', 'POST'])
-def newExpense(trip_id):
+@app.route('/newExpense', methods=['GET', 'POST'])
+def newExpense():
     with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
-
-        # To get trip_name in trips table
-        c.execute('SELECT trip_name FROM trips WHERE id=?', (trip_id,))
-        row = c.fetchone()
-        trip_name = row[0] if row else None
-    
-        # To get categories table
-        c.execute('SELECT * FROM categories')
-        categories_list = c.fetchall()
-    
-        # To get paymentMethods table
-        c.execute('SELECT * FROM paymentMethods')
-        paymentMethods_list = c.fetchall()
-    
-        # To get currencies table
-        c.execute('SELECT * FROM currencies')
-        currencies_list = c.fetchall()
-    
+        
         modal_message = None
+        
+        trips = []
+        row = []
+        categories_list = []
+        paymentMethods_list = []
+        currencies_list = []
+        all_expenses = []
+        
         category = ''
         payment_method = ''
         item = ''
         amount_str = ''
         currency = ''
-    
-        if request.method == 'POST':
         
-            category = request.form.get('category', '').strip()
-            payment_method = request.form.get('payment_method', '').strip()
-            item = request.form.get('item', '').strip().lower()
-            amount_str = request.form.get('amount', '').strip()
-            currency = request.form.get('currency', '').strip()
+        # Fetch all trips for dropdown
+        c.execute('SELECT id, trip_name FROM trips ORDER BY start_date')
+        trips = [{'id': r[0], 'trip_name': r[1]} for r in c.fetchall()]
         
-            # Validation
-            if not category:
-                modal_message = "Category cannot be empty!"
-            elif not payment_method:
-                modal_message = "Please select a payment method!"
-            elif not item:
-                modal_message = "Item cannot be empty!"
-            elif not amount_str:
-                modal_message = "Amount cannot be empty!"
-            elif not currency:
-                modal_message = "Please select a currency!"
+        trip_id = request.args.get('trip_id', type=int)
+
+        if trip_id:
+            # Fetch trip_name, start_date for trip info card
+            c.execute('SELECT trip_name, start_date FROM trips WHERE id=?', (trip_id,))
+            row = c.fetchone()
+            if row:
+                trip_name, start_date = row
             else:
-                # Validate "amount" input
-                try:
-                    amount = round(float(amount_str), 2)  # 兩位小數
-                    if amount <= 0:
-                        modal_message = "Amount must be greater than 0!"
-                except ValueError:
-                    modal_message = "Invalid amount!"
+                trip_name = start_date = None
         
-            if not modal_message:
+            # Fetch categories table for dropdown
+            c.execute('SELECT * FROM categories')
+            categories_list = c.fetchall()
+        
+            # Fetch paymentMethods table for dropdown
+            c.execute('SELECT * FROM paymentMethods')
+            paymentMethods_list = c.fetchall()
+        
+            # Fetch currencies table for dropdown
+            c.execute('SELECT * FROM currencies')
+            currencies_list = c.fetchall()
+        
+            if request.method == 'POST':
             
-                # Get category ID
-                c.execute('SELECT id FROM categories WHERE cat_name = ?', (category,))
-                category_row = c.fetchone()
-                if not category_row:
-                    modal_message = "Invalid category selected!"
-                else:
-                    category_id = category_row[0]
-
-                # Get payment method ID
-                c.execute('SELECT id FROM paymentMethods WHERE method_name = ?', (payment_method,))
-                payment_row = c.fetchone()
-                if not payment_row:
-                    modal_message = "Invalid payment method selected!"
-                else:
-                    payment_id = payment_row[0]
-
-                # Get currency ID
-                c.execute('SELECT id FROM currencies WHERE code = ?', (currency,))
-                currency_row = c.fetchone()
-                if not currency_row:
-                    modal_message = "Invalid currency selected!"
-                else:
-                    currency_id = currency_row[0]
+                purchase_date = request.form.get('purchase_date', '').strip()
+                category = request.form.get('category', '').strip()
+                payment_method = request.form.get('payment_method', '').strip()
+                item = request.form.get('item', '').strip().lower()
+                amount_str = request.form.get('amount', '').strip()
+                currency = request.form.get('currency', '').strip()
             
-                # Ensure insert successfully or not
-                try:
-                    c.execute('''
-                        INSERT INTO expenses (trip_id, category_id, method_id, item, amount, currency_id)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (trip_id, category_id, payment_id, item, amount, currency_id))
+                # Validation
+                if not purchase_date:
+                    modal_message = "Purchase date cannot be empty!"
+                elif not category:
+                    modal_message = "Category cannot be empty!"
+                elif not payment_method:
+                    modal_message = "Please select a payment method!"
+                elif not item:
+                    modal_message = "Item cannot be empty!"
+                elif not amount_str:
+                    modal_message = "Amount cannot be empty!"
+                elif not currency:
+                    modal_message = "Please select a currency!"
+                else:
+                    # Validate "amount" input
+                    try:
+                        amount = round(float(amount_str), 2)  # 兩位小數
+                        if amount <= 0:
+                            modal_message = "Amount must be greater than 0!"
+                    except ValueError:
+                        modal_message = "Invalid amount!"
+            
+                if not modal_message:
                 
-                    conn.commit()
-                    flash("Expense added successfully!", "error")
-                    return redirect(url_for('newExpense', trip_id=trip_id))
-            
-                except sqlite3.IntegrityError:
-                    modal_message = "Oh no! Something went wrong!"
+                    # Get category ID
+                    c.execute('SELECT id FROM categories WHERE cat_name = ?', (category,))
+                    category_row = c.fetchone()
+                    if not category_row:
+                        modal_message = "Invalid category selected!"
+                    else:
+                        category_id = category_row[0]
 
-    
-        all_expenses = []
+                    # Get payment method ID
+                    c.execute('SELECT id FROM paymentMethods WHERE method_name = ?', (payment_method,))
+                    payment_row = c.fetchone()
+                    if not payment_row:
+                        modal_message = "Invalid payment method selected!"
+                    else:
+                        payment_id = payment_row[0]
+
+                    # Get currency ID
+                    c.execute('SELECT id FROM currencies WHERE code = ?', (currency,))
+                    currency_row = c.fetchone()
+                    if not currency_row:
+                        modal_message = "Invalid currency selected!"
+                    else:
+                        currency_id = currency_row[0]
+                
+                    # Ensure insert successfully or not
+                    try:
+                        c.execute('''
+                            INSERT INTO expenses (trip_id, category_id, method_id, item, amount, currency_id, purchase_date)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ''', (trip_id, category_id, payment_id, item, amount, currency_id, purchase_date))
+                    
+                        conn.commit()
+                        flash("Expense added successfully!", "error")
+                        return redirect(url_for('newExpense', trip_id=trip_id))
+                
+                    except sqlite3.IntegrityError:
+                        modal_message = "Oh no! Something went wrong!"
+
+        
         # Fetch expenses only for selected trip
         if trip_id:
             c.execute('''
@@ -358,17 +381,18 @@ def newExpense(trip_id):
         for e in all_expenses:
             cat = e['category']
             grouped_expenses.setdefault(cat, []).append(e)
-            
-        
     
     return render_template(
         'newExpense.html', 
         grouped_expenses=grouped_expenses,
         modal_message=modal_message,
-        trip_name=trip_name, 
+        row=row,
+        trips=trips,
+        
         categories_list=categories_list,
         paymentMethods_list=paymentMethods_list,
         currencies_list=currencies_list,
+        
         entered_category=category,
         entered_paymentMethod=payment_method,
         entered_item=item,
@@ -380,7 +404,6 @@ def newExpense(trip_id):
 # viewExpense
 @app.route('/viewExpense')
 def viewExpense():
-    # Initialize variables
     trips = []
     trip = None
     expenses = []
@@ -388,88 +411,99 @@ def viewExpense():
     total_in_base = 0
     modal_message = ""
 
-    # Safely get trip_id from query string
+    # Get query parameters
     trip_id = request.args.get('trip_id', type=int)
+    selected_date = request.args.get('purchase_date')  # string like "2025-12-19"
 
-    # Open DB connection
     try:
         with sqlite3.connect(DB_FILE) as conn:
             c = conn.cursor()
 
-            # Fetch all trips for dropdown (always)
-            try:
-                c.execute('SELECT id, trip_name FROM trips ORDER BY start_date')
-                trips = [{'id': r[0], 'trip_name': r[1]} for r in c.fetchall()]
-            except sqlite3.DatabaseError:
-                modal_message = "Failed to fetch trips."
+            # Fetch all trips for dropdown
+            c.execute('SELECT id, trip_name FROM trips ORDER BY start_date')
+            trips = [{'id': r[0], 'trip_name': r[1]} for r in c.fetchall()]
 
-            # If a valid trip is selected, fetch trip info and expenses
+            dates = []
             if trip_id:
-                try:
-                    # Fetch selected trip info
-                    c.execute('SELECT id, trip_name, start_date, end_date FROM trips WHERE id = ?', (trip_id,))
-                    row = c.fetchone()
-                    if row:
-                        trip = {
-                            'id': row[0],
-                            'trip_name': row[1],
-                            'start_date': row[2],
-                            'end_date': row[3]
-                        }
-                    else:
-                        modal_message = "Selected trip not found."
-                        trip_id = None  # prevent further queries
+                # Fetch only purchase dates that exist for this trip
+                c.execute('''
+                    SELECT DISTINCT purchase_date
+                    FROM expenses
+                    WHERE trip_id = ?
+                    ORDER BY purchase_date
+                ''', (trip_id,))
+                dates = [r[0] for r in c.fetchall()]
 
-                    if trip:
-                        # Calculate total in base currency
-                        c.execute('''
-                            SELECT SUM(e.amount * r.rate_to_base)
-                            FROM expenses e
-                            JOIN exchange_rates r ON e.currency_id = r.currency_id
-                            WHERE e.trip_id = ?
-                        ''', (trip_id,))
-                        total_in_base = c.fetchone()[0] or 0
+            if trip_id:
+                # Fetch trip info
+                c.execute('''
+                        SELECT id, trip_name, start_date, end_date 
+                        FROM trips 
+                        WHERE id = ?
+                    ''', (trip_id,))
+                row = c.fetchone()
+                if row:
+                    trip = {
+                        'id': row[0],
+                        'trip_name': row[1],
+                        'start_date': row[2],
+                        'end_date': row[3]
+                    }
+                else:
+                    modal_message = "Trip not found."
+                    trip_id = None  # prevent further queries
 
-                        # Fetch expenses for the trip
-                        c.execute('''
-                            SELECT e.id, c.cat_name, e.item, e.amount, cu.code, cu.symbol
-                            FROM expenses e
-                            JOIN categories c ON e.category_id = c.id
-                            JOIN currencies cu ON e.currency_id = cu.id
-                            WHERE e.trip_id = ?
-                            ORDER BY c.order_index
-                        ''', (trip_id,))
-                        rows = c.fetchall()
+            if trip_id:
+                # Filter expenses by trip and optionally by selected date
+                query = '''
+                    SELECT e.id, c.cat_name, e.item, e.amount, cu.code, cu.symbol, r.rate_to_base
+                    FROM expenses e
+                    JOIN categories c ON e.category_id = c.id
+                    JOIN currencies cu ON e.currency_id = cu.id
+                    JOIN exchange_rates r ON e.currency_id = r.currency_id
+                    WHERE e.trip_id = ?
+                '''
+                params = [trip_id]
 
-                        for e in rows:
-                            expense = {
-                                'id': e[0],
-                                'category': e[1],
-                                'item': e[2],
-                                'amount': e[3],
-                                'code': e[4],
-                                'symbol': e[5]
-                            }
-                            expenses.append(expense)
-                            grouped_expenses.setdefault(e[1], []).append(expense)
+                if selected_date:
+                    query += ' AND e.purchase_date = ?'
+                    params.append(selected_date)
 
-                except sqlite3.DatabaseError:
-                    modal_message = "Failed to fetch selected trip details or expenses."
+                query += ' ORDER BY c.order_index'
+
+                c.execute(query, params)
+                rows = c.fetchall()
+
+                for e in rows:
+                    expense = {
+                        'id': e[0],
+                        'category': e[1],
+                        'item': e[2],
+                        'amount': e[3],
+                        'code': e[4],
+                        'symbol': e[5]
+                    }
+                    expenses.append(expense)
+                    grouped_expenses.setdefault(e[1], []).append(expense)
+                    total_in_base += e[3] * e[6]  # sum in base currency
 
     except sqlite3.DatabaseError:
-        modal_message = "Database connection failed."
+        modal_message = "Database error occurred."
 
-    # Render template
     return render_template(
         'viewExpense.html',
         trips=trips,
-        selected_trip=trip_id,
         trip=trip,
-        grouped_expenses=grouped_expenses,
+        selected_trip=trip_id,
+        dates=dates,
+        selected_date=selected_date,
         expenses=expenses,
+        grouped_expenses=grouped_expenses,
         total_in_base=total_in_base,
         modal_message=modal_message
     )
+
+
 
 
 #editTrip
