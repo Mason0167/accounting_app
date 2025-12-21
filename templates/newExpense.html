@@ -3,7 +3,7 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ row[0]|title }} Expenses</title>
+    <title>{{ row.trip_name|title }} Expenses</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,7 +52,7 @@
             <!-- Date -->
             <label>Date:</label>
             <input type="date" name="purchase_date" class="input-field"
-                    value="{{ row[1] or '' }}">
+                    value="{{ row.start_date or '' }}">
 
             <!-- Category -->
             <label>Category:</label>
@@ -108,7 +108,7 @@
 
         <!-- 支出列表 -->
         {% if grouped_expenses %}
-        <h3>All Expenses For {{ row[0]|title }}</h3>
+        <h3>All Expenses For {{ row.trip_name|title }} {{ row.flag }}</h3>
             <div class="categories-container">
                 {% for cat, expenses in grouped_expenses.items() %}
                     <div class="category-card">

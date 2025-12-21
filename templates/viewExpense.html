@@ -80,7 +80,10 @@
         <!-- Trip Info Card -->
         {% if trip %}
         <div class="category-card" style="margin-bottom: 20px;">
-            <h3 class="trip-name">{{ trip.trip_name|title }}</h3>
+            <h3 class="trip-name">
+                <span class="trip-flag">{{ trip.flag }}</span>
+                <span class="trip-title">{{ trip.trip_name|title }}</span>
+            </h3>
 
             <p class="trip-date">
                 {{ trip.start_date }} → {{ trip.end_date }}

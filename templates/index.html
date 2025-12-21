@@ -26,6 +26,19 @@
         <a href="{{ url_for('viewExpense') }}">
             <button type="button" class="btn btn-large">View All Expenses</button>
         </a>
+        
+        <div class="visited-countries">
+            <span class="label">Countries you have been to:</span>
+
+            <div class="flags">
+                {% for country in countries %}
+                    <span class="flag" title="{{ country.country_name }}">
+                        {{ country.flag }}
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+        
     </div>
 </body>
 

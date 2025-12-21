@@ -376,7 +376,7 @@ input[type="date"].input-field {
 
 
 
-/* newExpense Categories Cards */
+/* newExpense Category Cards */
 .categories-container {
     display: flex;
     flex-wrap: wrap;  /* 多個 category 卡片換行 */
@@ -416,6 +416,34 @@ input[type="date"].input-field {
 .expense-text {
     font-size: 0.95rem;
     color: #333;
+}
+
+
+
+/* Index Flags */
+.visited-countries {
+    margin: 16px 0;
+}
+
+.visited-countries .label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #4B0082;
+}
+
+.flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.flag {
+    font-size: 26px;
+    padding: 6px 10px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 

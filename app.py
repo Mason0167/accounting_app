@@ -13,6 +13,19 @@ def init_db():
         conn.execute("PRAGMA foreign_keys = ON")
         c = conn.cursor()
         
+        # trips table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS trips (
+                id INTEGER PRIMARY KEY,
+                trip_name TEXT UNIQUE,
+                start_date TEXT,
+                end_date TEXT,
+                
+                country_id INTEGER,
+                FOREIGN KEY(country_id) REFERENCES countries(id)
+            )
+        ''')
+
         # countries table
         c.execute('''
             CREATE TABLE IF NOT EXISTS countries (
@@ -28,26 +41,13 @@ def init_db():
             ('South Korea', 'KR'),
             ('Vietnam', 'VN'),
             ('United States', 'US'),
-            ('United Kindom', 'UK')
+            ('United Kindom', 'GB')
         ]
         
         c.executemany(
             'INSERT OR IGNORE INTO countries (country_name, country_code) VALUES (?, ?)',
             countries
-        )
-        
-        # trips table
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS trips (
-                id INTEGER PRIMARY KEY,
-                trip_name TEXT UNIQUE,
-                start_date TEXT,
-                end_date TEXT,
-                
-                country_id INTEGER,
-                FOREIGN KEY(country_id) REFERENCES countries(id)
-            )
-        ''')    
+        )        
                 
         # paymentMethods table
         c.execute('''
@@ -171,7 +171,34 @@ def init_db():
 # Index
 @app.route('/')
 def index():
-    return render_template('index.html')
+     with sqlite3.connect(DB_FILE) as conn:
+        c = conn.cursor()
+        
+        countries = []
+        
+        c.execute("SELECT id, trip_name, country_id FROM trips")
+        print("TRIPS:", c.fetchall())
+        
+        # Fetch countries for dropdown
+        c.execute('''
+                SELECT DISTINCT c.id, c.country_name, c.country_code
+                FROM countries c
+                JOIN trips t ON t.country_id = c.id
+                ORDER BY c.id
+        ''')
+        for r in c.fetchall():
+            countries.append({
+                'id': r[0],
+                'country_name': r[1],
+                'country_code': r[2],
+                'flag': country_flag(r[2])
+            })
+    
+    
+        return render_template(
+            'index.html',
+            countries=countries
+        )
 
 # tripSelection
 @app.route('/tripSelection', methods=['GET', 'POST'])
@@ -187,7 +214,7 @@ def tripSelection():
         start_date = ''
         end_date = ''
         
-        # Fetch trips for dropdown
+        # Fetch countries for dropdown
         c.execute('SELECT * FROM countries')
         for r in c.fetchall():
             countries.append({
@@ -198,6 +225,7 @@ def tripSelection():
             })
         
         if request.method == 'POST':
+            country_id = request.form.get('country_id', '').strip()
             ui_trip_name = request.form.get('trip_name', '').strip()
             db_trip_name = ui_trip_name.lower()
             start_date = request.form.get('start_date', '').strip()
@@ -206,6 +234,9 @@ def tripSelection():
             # Validation
             if not ui_trip_name:
                 flash("Trip name cannot be empty!", "error")
+                errors = True
+            elif not country_id:
+                flash("Country cannot be empty!", "error")
                 errors = True
             elif not start_date:
                 flash("Start date cannot be empty!", "error")
@@ -229,8 +260,8 @@ def tripSelection():
             if not errors:
                 try:
                     c.execute('''
-                        INSERT INTO trips (trip_name, start_date, end_date) VALUES (?, ?, ?)
-                        ''', (db_trip_name, start_date, end_date)
+                        INSERT INTO trips (trip_name, start_date, end_date, country_id) VALUES (?, ?, ?, ?)
+                        ''', (db_trip_name, start_date, end_date, country_id)
                     )
                     conn.commit()
                     flash(f'"{ui_trip_name}" added successfully!', 'success')
@@ -240,7 +271,12 @@ def tripSelection():
                     flash(f'"{ui_trip_name}" already exists!', "error")
 
         # Refresh trips after potential insertion
-        c.execute('SELECT * FROM trips ORDER BY start_date')
+        c.execute('''
+                SELECT t.id, t.trip_name, t.start_date, t.end_date, c.country_code
+                FROM trips t
+                JOIN countries c ON t.country_id = c.id
+
+        ''')
         trips_list = c.fetchall()
 
         # Calculate total expenses in base currency for each trip
@@ -262,6 +298,7 @@ def tripSelection():
                 'trip_name': trip[1],
                 'start_date': trip[2],
                 'end_date': trip[3],
+                'flag': country_flag(trip[4]),
                 'total_in_base': total_in_base
             })
 
@@ -305,18 +342,26 @@ def newExpense():
         
         trip_id = request.args.get('trip_id', type=int)
         if request.method == 'POST':
-            flash("Please select a trip before add a new expense!", "error")
-            return redirect(url_for('newExpense'))
-        
+            flash("Please select a trip before add a new expense!", "error")        
             
         if trip_id:
             # Fetch trip_name, start_date for trip info card
-            c.execute('SELECT trip_name, start_date FROM trips WHERE id=?', (trip_id,))
+            c.execute('''
+                    SELECT t.trip_name, t.start_date, c.country_code
+                    FROM trips t
+                    JOIN countries c ON t.country_id = c.id
+                    WHERE t.id=?
+            ''', (trip_id,))
             row = c.fetchone()
             if row:
-                trip_name, start_date = row
+                row = {
+                    'trip_name': row[0],
+                    'start_date': row[1],
+                    'country_code': row[2],
+                    'flag': country_flag(row[2])
+                }
             else:
-                trip_name = start_date = None
+                trip_name = start_date = trip_flag = None
         
             # Fetch categories table for dropdown
             c.execute('SELECT * FROM categories')
@@ -415,11 +460,6 @@ def newExpense():
                         flash("Oh no! Something went wrong!", "error")
                         errors = True
                         
-              
-        
-        
-        
-        
         # Fetch expenses only for selected trip
         if trip_id:
             c.execute('''
@@ -523,9 +563,10 @@ def viewExpense():
             if trip_id:
                 # Fetch trip info if user select a trip
                 c.execute('''
-                        SELECT id, trip_name, start_date, end_date 
-                        FROM trips 
-                        WHERE id = ?
+                        SELECT t.id, t.trip_name, t.start_date, t.end_date, c.country_code
+                        FROM trips t
+                        JOIN countries c ON t.country_id = c.id
+                        WHERE t.id = ?
                     ''', (trip_id,))
                 row = c.fetchone()
                 if row:
@@ -533,7 +574,8 @@ def viewExpense():
                         'id': row[0],
                         'trip_name': row[1],
                         'start_date': row[2],
-                        'end_date': row[3]
+                        'end_date': row[3],
+                        'flag': country_flag(row[4])
                     }
                 else:
                     flash("Trip not found.", "error")

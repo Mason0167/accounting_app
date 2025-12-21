@@ -66,9 +66,12 @@
             {% for trip in trips %}
             <li class="trip-card">
 
-                <!-- LEFT: Trip Info -->
                 <div class="trip-info">
-                    <h3 class="trip-name">{{ trip.trip_name|title }}</h3>
+                    <h3 class="trip-name">
+                        <span class="trip-flag">{{ trip.flag }}</span>
+                        <span class="trip-title">{{ trip.trip_name|title }}</span>
+                    </h3>
+
 
                     <p class="trip-date">
                         {{ trip.start_date }} → {{ trip.end_date }}
@@ -79,7 +82,6 @@
                     </p>
                 </div>
 
-                <!-- RIGHT: Actions -->
                 <div class="trip-buttons">
                 
                     <a href="{{ url_for('editTrip', trip_id=trip.id) }}" class="btn btn-submit">
