@@ -23,6 +23,8 @@ button, input, select, textarea {
     padding: 20px;
     border-radius: 15px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+    box-sizing: border-box;
 }
 
 h1 {
@@ -39,6 +41,8 @@ h1 {
 
 label {
     margin-bottom: 10px;
+    display: block;
+    width: 100%;
 }
 
 input, select {
@@ -99,15 +103,17 @@ select.input-field {
 }
 
 input[type="date"] {
+    width: 100%;
     max-width: 100%;
     min-width: 0;
-}
-
-
-input[type="date"].input-field {
     
-    padding: 12px 14px;
-    color: #4B0082;
+    box-sizing: border-box;
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    display: block;
 }
 
 
