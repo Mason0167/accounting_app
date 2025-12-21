@@ -13,13 +13,39 @@ def init_db():
         conn.execute("PRAGMA foreign_keys = ON")
         c = conn.cursor()
         
+        # countries table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS countries (
+                id INTEGER PRIMARY KEY,
+                country_name TEXT UNIQUE,
+                country_code TEXT UNIQUE
+            )
+        ''') 
+        
+        countries = [
+            ('Taiwan', 'TW'),
+            ('Japan', 'JP'),
+            ('South Korea', 'KR'),
+            ('Vietnam', 'VN'),
+            ('United States', 'US'),
+            ('United Kindom', 'UK')
+        ]
+        
+        c.executemany(
+            'INSERT OR IGNORE INTO countries (country_name, country_code) VALUES (?, ?)',
+            countries
+        )
+        
         # trips table
         c.execute('''
             CREATE TABLE IF NOT EXISTS trips (
                 id INTEGER PRIMARY KEY,
                 trip_name TEXT UNIQUE,
                 start_date TEXT,
-                end_date TEXT
+                end_date TEXT,
+                
+                country_id INTEGER,
+                FOREIGN KEY(country_id) REFERENCES countries(id)
             )
         ''')    
                 
@@ -152,16 +178,24 @@ def index():
 def tripSelection():
     with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
-    
-        # Fetch trips for display
-        c.execute('SELECT * FROM trips ORDER BY start_date')
-        trips_list = c.fetchall()
+        
+        countries = []
 
         errors = False
         db_trip_name = ''
         ui_trip_name = ''
         start_date = ''
         end_date = ''
+        
+        # Fetch trips for dropdown
+        c.execute('SELECT * FROM countries')
+        for r in c.fetchall():
+            countries.append({
+                'id': r[0],
+                'country_name': r[1],
+                'country_code': r[2],
+                'flag': country_flag(r[2])
+            })
         
         if request.method == 'POST':
             ui_trip_name = request.form.get('trip_name', '').strip()
@@ -234,7 +268,10 @@ def tripSelection():
       
         return render_template(
             'tripSelection.html',
+            
+            countries=countries,
             trips=trips_with_total,
+            
             entered_trip_name=ui_trip_name,
             entered_start_date=start_date,
             entered_end_date=end_date
@@ -267,7 +304,11 @@ def newExpense():
         trips = [{'id': r[0], 'trip_name': r[1]} for r in c.fetchall()]
         
         trip_id = request.args.get('trip_id', type=int)
-
+        if request.method == 'POST':
+            flash("Please select a trip before add a new expense!", "error")
+            return redirect(url_for('newExpense'))
+        
+            
         if trip_id:
             # Fetch trip_name, start_date for trip info card
             c.execute('SELECT trip_name, start_date FROM trips WHERE id=?', (trip_id,))
@@ -301,33 +342,33 @@ def newExpense():
                 # Validation
                 if not purchase_date:
                     flash("Purchase date cannot be empty!", "error")
-                    errors = False
+                    errors = True
                 elif not category:
                     flash("Category cannot be empty!", "error")
-                    errors = False
+                    errors = True
                 elif not payment_method:
                     flash("Please select a payment method!", "error")
-                    errors = False
+                    errors = True
                 elif not item:
                     flash("Item cannot be empty!", "error")
-                    errors = False
+                    errors = True
                 elif not amount_str:
                     flash("Amount cannot be empty!", "error")
-                    errors = False
+                    errors = True
                 elif not currency:
                     flash("Please select a currency!", "error")
-                    errors = False
+                    errors = True
                 else:
                     # Validate "amount" input
                     try:
                         amount = round(float(amount_str), 2)  # 兩位小數
                         if amount <= 0:
                             flash("Amount must be greater than 0!", "error")
-                            errors = False
+                            errors = True
                             
                     except ValueError:
                         flash("Invalid amount!", "error")
-                        errors = False
+                        errors = True
             
                 if not errors:
                 
@@ -336,7 +377,7 @@ def newExpense():
                     category_row = c.fetchone()
                     if not category_row:
                         flash("Invalid category selected!", "error")
-                        errors = False
+                        errors = True
                         
                     else:
                         category_id = category_row[0]
@@ -346,7 +387,7 @@ def newExpense():
                     payment_row = c.fetchone()
                     if not payment_row:
                         flash("Invalid payment method selected!", "error")
-                        errors = False
+                        errors = True
                     else:
                         payment_id = payment_row[0]
 
@@ -355,7 +396,7 @@ def newExpense():
                     currency_row = c.fetchone()
                     if not currency_row:
                         flash("Invalid currency selected!", "error")
-                        errors = False
+                        errors = True
                     else:
                         currency_id = currency_row[0]
                 
@@ -365,15 +406,19 @@ def newExpense():
                             INSERT INTO expenses (trip_id, category_id, method_id, item, amount, currency_id, purchase_date)
                             VALUES (?, ?, ?, ?, ?, ?, ?)
                         ''', (trip_id, category_id, payment_id, item, amount, currency_id, purchase_date))
-                    
+                        
                         conn.commit()
                         flash("Expense added successfully!", "success")
                         return redirect(url_for('newExpense', trip_id=trip_id))
-                
+                    
                     except sqlite3.IntegrityError:
                         flash("Oh no! Something went wrong!", "error")
-                        errors = False
-
+                        errors = True
+                        
+              
+        
+        
+        
         
         # Fetch expenses only for selected trip
         if trip_id:
@@ -405,9 +450,12 @@ def newExpense():
     
     return render_template(
         'newExpense.html', 
-        grouped_expenses=grouped_expenses,
+        errors=errors,
+        
+        selected_trip=trip_id,
         row=row,
         trips=trips,
+        grouped_expenses=grouped_expenses,
         
         categories_list=categories_list,
         paymentMethods_list=paymentMethods_list,
@@ -668,6 +716,14 @@ def downloadBackup():
         download_name=backup_name,
         mimetype='application/octet-stream'
     )
+    
+# A helper to generate emoji flags
+def country_flag(code):
+    if not code or len(code) != 2:
+        return ''
+    return chr(0x1F1E6 + ord(code[0].upper()) - 65) + \
+           chr(0x1F1E6 + ord(code[1].upper()) - 65)
+
     
     
 if __name__ == '__main__':

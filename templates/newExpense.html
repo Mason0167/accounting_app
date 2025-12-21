@@ -40,7 +40,7 @@
                 <option value="">All Trips</option>
                 {% for trip in trips %}
                     <option value="{{ trip.id }}" {% if selected_trip == trip.id %}selected{% endif %}>
-                    {{ trip.trip_name }}
+                    {{ trip.trip_name|title }}
                     </option>
                 {% endfor %}
             </select>

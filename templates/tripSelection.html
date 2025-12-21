@@ -38,6 +38,17 @@
             <input type="text" name="trip_name" class="input-field"
                 placeholder="New Trip Name"
                 value="{{ entered_trip_name|default('') }}">
+
+            <label>
+                Country:
+                <select name="country_id">
+                    {% for country in countries %}
+                        <option value="{{ country.id }}" {% if selected_country == country.id %}selected{% endif %}>
+                           {{ country.flag }} {{ country.country_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
                 
             <label>Start Date</label>
             <input type="date" name="start_date" class="input-field"
