@@ -40,7 +40,7 @@
             <!-- Trip Dropdown -->
             <label>
                 Select Trip:
-                <select name="trip_id" onchange="this.form.submit()">
+                <select name="trip_id" id="tripSelect" onchange="handleTripChange()"">
                     <option value="">All Trips</option>
                     {% for trip in trips %}
                         <option value="{{ trip.id }}" {% if selected_trip == trip.id %}selected{% endif %}>
@@ -51,17 +51,30 @@
             </label>
 
             <!-- Date Dropdown -->
-            <label>
-                    Select Date:
-                    <select name="purchase_date" onchange="this.form.submit()">
-                        <option value="">All Purchase Date</option>
-                        {% for date in dates %}
-                            <option value="{{ date }}" {% if selected_date == date %}selected{% endif %}>
-                            {{ date }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </label>
+            <label id="dateWrapper" style="display: {% if selected_trip %}block{% else %}none{% endif %};">
+                Filter By Date:
+                <select name="purchase_date" onchange="this.form.submit()">
+                    <option value="">All Purchase Date</option>
+                    {% for date in dates %}
+                        <option value="{{ date }}" {% if selected_date == date %}selected{% endif %}>
+                        {{ date }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <!-- Category Dropdown -->
+             <label id="catWrapper" style="display: {% if selected_trip %}block{% else %}none{% endif %};">
+                Filter By Category:
+                <select name="category_name" onchange="this.form.submit()">
+                    <option value="">All Category</option>
+                    {% for category in categories %}
+                        <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>
+                        {{ category|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
         </form>
 
         <!-- Trip Info Card -->
@@ -128,6 +141,7 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/display.js') }}"></script>
 
     <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -135,7 +149,7 @@
             {% if messages %}
                 {% for category, message in messages %}
                     openModal({
-                        type: '{{ "error" if category == "error" else "error" }}',
+                        type: '{{ category }}',
                         text: "{{ message|escape }}"
                     });
                 {% endfor %}

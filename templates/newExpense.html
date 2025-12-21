@@ -119,6 +119,13 @@
                                     <span class="expense-text">
                                         {{ e.item|capitalize }} : {{ e.code }} {{ e.symbol }}{{ "%.2f"|format(e.amount) }}
                                     </span>
+
+                                    <!-- <button type="button"
+                                            class="btn btn-edit-expense btn-small"
+                                            data-id="{{ e.id }}">
+                                        Edit
+                                    </button> -->
+
                                     <button type="button"
                                             class="btn btn-delete-expense btn-small"
                                             data-id="{{ e.id }}"
@@ -156,7 +163,7 @@
             {% if messages %}
                 {% for category, message in messages %}
                     openModal({
-                        type: '{{ "error" if category == "error" else "error" }}',
+                        type: '{{ category }}',
                         text: "{{ message|escape }}"
                     });
                 {% endfor %}

@@ -16,7 +16,11 @@
     <div class="container">
         <h1>Family Trip Expenses</h1>
         <a href="{{ url_for('tripSelection') }}">
-            <button type="button" class="btn btn-large">Trips / Expenses</button>
+            <button type="button" class="btn btn-large">Add New Trip</button>
+        </a>
+
+        <a href="{{ url_for('newExpense') }}">
+            <button type="button" class="btn btn-large">Add New Expense</button>
         </a>
 
         <a href="{{ url_for('viewExpense') }}">

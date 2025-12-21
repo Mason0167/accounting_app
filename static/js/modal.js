@@ -12,7 +12,7 @@ function openModal({type, text, formAction=null}) {
         modalOkBtn.style.display = 'none';
         modalForm.action = formAction;
         modalConfirmBtn.textContent = 'Yes, Delete';
-    } else if(type === 'error') {
+    } else if(type === 'error' || type === 'success') {
         modalForm.style.display = 'none';
         modalOkBtn.style.display = 'inline-block';
     }

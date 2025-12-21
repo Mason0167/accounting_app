@@ -55,7 +55,7 @@
             {% if messages %}
                 {% for category, message in messages %}
                     openModal({
-                        type: '{{ "error" if category == "error" else "error" }}',
+                        type: '{{ category }}',
                         text: "{{ message|escape }}"
                     });
                 {% endfor %}

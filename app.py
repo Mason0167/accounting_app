@@ -10,6 +10,7 @@ app.secret_key = 'your_secret_key_here'
 # 初始化資料庫
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
         c = conn.cursor()
         
         # trips table
@@ -132,7 +133,7 @@ def init_db():
                      category_id INTEGER,
                      trip_id INTEGER,
                   
-                     FOREIGN KEY(currency_id) REFERENCES currensies(id),
+                     FOREIGN KEY(currency_id) REFERENCES currencies(id),
                      FOREIGN KEY(method_id) REFERENCES paymentMethods(id),
                      FOREIGN KEY(category_id) REFERENCES categories(id),
                      FOREIGN KEY(trip_id) REFERENCES trips(id)
@@ -156,47 +157,53 @@ def tripSelection():
         c.execute('SELECT * FROM trips ORDER BY start_date')
         trips_list = c.fetchall()
 
-        modal_message = None
-        trip_name = ''
-        display_trip_name = ''
+        errors = False
+        db_trip_name = ''
+        ui_trip_name = ''
         start_date = ''
         end_date = ''
         
         if request.method == 'POST':
-            trip_name = request.form.get('trip_name', '').strip()
-            display_trip_name = request.form.get('trip_name', '').strip()
+            ui_trip_name = request.form.get('trip_name', '').strip()
+            db_trip_name = ui_trip_name.lower()
             start_date = request.form.get('start_date', '').strip()
             end_date = request.form.get('end_date', '').strip()
 
             # Validation
-            if not trip_name:
-                modal_message = "Trip name cannot be empty!"
+            if not ui_trip_name:
+                flash("Trip name cannot be empty!", "error")
+                errors = True
             elif not start_date:
-                modal_message = "Start date cannot be empty!"
+                flash("Start date cannot be empty!", "error")
+                errors = True
             elif not end_date:
-                modal_message = "End date cannot be empty!"
+                flash("End date cannot be empty!", "error")
+                errors = True
             else:
                 try:
                     start_dt = datetime.strptime(start_date, '%Y-%m-%d')
                     end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+                    
                     if start_dt > end_dt:
-                        modal_message = "End date must be after or equal to start date!"
+                        flash("End date must be after or equal to start date!", "error")
+                        errors = True
+                
                 except ValueError:
-                    modal_message = "Invalid date format!"
-
-            # Insert trip if no error
-            if not modal_message:
+                    flash("Invalid date format!", "error")
+                    errors = True
+            
+            if not errors:
                 try:
-                    c.execute(
-                        'INSERT INTO trips (trip_name, start_date, end_date) VALUES (?, ?, ?)',
-                        (trip_name, start_date, end_date)
+                    c.execute('''
+                        INSERT INTO trips (trip_name, start_date, end_date) VALUES (?, ?, ?)
+                        ''', (db_trip_name, start_date, end_date)
                     )
                     conn.commit()
-                    flash(f'"{display_trip_name}" added successfully!', 'success')
-                    return redirect(url_for('tripSelection'))  # PRG pattern
-                    
+                    flash(f'"{ui_trip_name}" added successfully!', 'success')
+                    return redirect(url_for('tripSelection'))  # PRG pattern 
+                
                 except sqlite3.IntegrityError:
-                    modal_message = f'"{display_trip_name}" already exists!'
+                    flash(f'"{ui_trip_name}" already exists!', "error")
 
         # Refresh trips after potential insertion
         c.execute('SELECT * FROM trips ORDER BY start_date')
@@ -224,11 +231,11 @@ def tripSelection():
                 'total_in_base': total_in_base
             })
 
+      
         return render_template(
             'tripSelection.html',
             trips=trips_with_total,
-            modal_message=modal_message,
-            entered_trip_name=trip_name,
+            entered_trip_name=ui_trip_name,
             entered_start_date=start_date,
             entered_end_date=end_date
         )
@@ -240,7 +247,7 @@ def newExpense():
     with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
         
-        modal_message = None
+        errors = False
         
         trips = []
         row = []
@@ -293,33 +300,44 @@ def newExpense():
             
                 # Validation
                 if not purchase_date:
-                    modal_message = "Purchase date cannot be empty!"
+                    flash("Purchase date cannot be empty!", "error")
+                    errors = False
                 elif not category:
-                    modal_message = "Category cannot be empty!"
+                    flash("Category cannot be empty!", "error")
+                    errors = False
                 elif not payment_method:
-                    modal_message = "Please select a payment method!"
+                    flash("Please select a payment method!", "error")
+                    errors = False
                 elif not item:
-                    modal_message = "Item cannot be empty!"
+                    flash("Item cannot be empty!", "error")
+                    errors = False
                 elif not amount_str:
-                    modal_message = "Amount cannot be empty!"
+                    flash("Amount cannot be empty!", "error")
+                    errors = False
                 elif not currency:
-                    modal_message = "Please select a currency!"
+                    flash("Please select a currency!", "error")
+                    errors = False
                 else:
                     # Validate "amount" input
                     try:
                         amount = round(float(amount_str), 2)  # 兩位小數
                         if amount <= 0:
-                            modal_message = "Amount must be greater than 0!"
+                            flash("Amount must be greater than 0!", "error")
+                            errors = False
+                            
                     except ValueError:
-                        modal_message = "Invalid amount!"
+                        flash("Invalid amount!", "error")
+                        errors = False
             
-                if not modal_message:
+                if not errors:
                 
                     # Get category ID
                     c.execute('SELECT id FROM categories WHERE cat_name = ?', (category,))
                     category_row = c.fetchone()
                     if not category_row:
-                        modal_message = "Invalid category selected!"
+                        flash("Invalid category selected!", "error")
+                        errors = False
+                        
                     else:
                         category_id = category_row[0]
 
@@ -327,7 +345,8 @@ def newExpense():
                     c.execute('SELECT id FROM paymentMethods WHERE method_name = ?', (payment_method,))
                     payment_row = c.fetchone()
                     if not payment_row:
-                        modal_message = "Invalid payment method selected!"
+                        flash("Invalid payment method selected!", "error")
+                        errors = False
                     else:
                         payment_id = payment_row[0]
 
@@ -335,7 +354,8 @@ def newExpense():
                     c.execute('SELECT id FROM currencies WHERE code = ?', (currency,))
                     currency_row = c.fetchone()
                     if not currency_row:
-                        modal_message = "Invalid currency selected!"
+                        flash("Invalid currency selected!", "error")
+                        errors = False
                     else:
                         currency_id = currency_row[0]
                 
@@ -347,11 +367,12 @@ def newExpense():
                         ''', (trip_id, category_id, payment_id, item, amount, currency_id, purchase_date))
                     
                         conn.commit()
-                        flash("Expense added successfully!", "error")
+                        flash("Expense added successfully!", "success")
                         return redirect(url_for('newExpense', trip_id=trip_id))
                 
                     except sqlite3.IntegrityError:
-                        modal_message = "Oh no! Something went wrong!"
+                        flash("Oh no! Something went wrong!", "error")
+                        errors = False
 
         
         # Fetch expenses only for selected trip
@@ -385,7 +406,6 @@ def newExpense():
     return render_template(
         'newExpense.html', 
         grouped_expenses=grouped_expenses,
-        modal_message=modal_message,
         row=row,
         trips=trips,
         
@@ -404,16 +424,23 @@ def newExpense():
 # viewExpense
 @app.route('/viewExpense')
 def viewExpense():
+    errors = False
+    
+    dates = []
+    categories = []
     trips = []
-    trip = None
+    
     expenses = []
     grouped_expenses = {}
+    
+    trip = None
+    
     total_in_base = 0
-    modal_message = ""
 
     # Get query parameters
     trip_id = request.args.get('trip_id', type=int)
     selected_date = request.args.get('purchase_date')  # string like "2025-12-19"
+    selected_cat = request.args.get('category_name')
 
     try:
         with sqlite3.connect(DB_FILE) as conn:
@@ -423,7 +450,8 @@ def viewExpense():
             c.execute('SELECT id, trip_name FROM trips ORDER BY start_date')
             trips = [{'id': r[0], 'trip_name': r[1]} for r in c.fetchall()]
 
-            dates = []
+            
+            # Fetch for dropdown
             if trip_id:
                 # Fetch only purchase dates that exist for this trip
                 c.execute('''
@@ -433,9 +461,19 @@ def viewExpense():
                     ORDER BY purchase_date
                 ''', (trip_id,))
                 dates = [r[0] for r in c.fetchall()]
+                
+                # Fetch all categoies that exist for this trip
+                c.execute('''
+                    SELECT DISTINCT c.cat_name
+                    FROM categories c
+                    JOIN expenses e ON e.category_id = c.id
+                    WHERE e.trip_id = ?
+                    ORDER BY c.order_index
+                ''', (trip_id,))
+                categories = [r[0] for r in c.fetchall()]
 
             if trip_id:
-                # Fetch trip info
+                # Fetch trip info if user select a trip
                 c.execute('''
                         SELECT id, trip_name, start_date, end_date 
                         FROM trips 
@@ -450,7 +488,7 @@ def viewExpense():
                         'end_date': row[3]
                     }
                 else:
-                    modal_message = "Trip not found."
+                    flash("Trip not found.", "error")
                     trip_id = None  # prevent further queries
 
             if trip_id:
@@ -468,11 +506,19 @@ def viewExpense():
                 if selected_date:
                     query += ' AND e.purchase_date = ?'
                     params.append(selected_date)
+                    
+                if selected_cat:
+                    query += ' AND c.cat_name = ? '
+                    params.append(selected_cat)
 
                 query += ' ORDER BY c.order_index'
 
                 c.execute(query, params)
                 rows = c.fetchall()
+                
+                print("SQL:", query)
+                print("Params:", params)
+
 
                 for e in rows:
                     expense = {
@@ -487,20 +533,29 @@ def viewExpense():
                     grouped_expenses.setdefault(e[1], []).append(expense)
                     total_in_base += e[3] * e[6]  # sum in base currency
 
+    except NameError:
+        flash("Category name not found.", "error")
+
     except sqlite3.DatabaseError:
-        modal_message = "Database error occurred."
+        flash("Database error occurred.", "error")
 
     return render_template(
         'viewExpense.html',
+
         trips=trips,
-        trip=trip,
-        selected_trip=trip_id,
         dates=dates,
+        categories=categories,
+        
+        trip=trip,
+        total_in_base=total_in_base,
+        
+        selected_trip=trip_id,
         selected_date=selected_date,
+        selected_category=selected_cat,
+        
         expenses=expenses,
         grouped_expenses=grouped_expenses,
-        total_in_base=total_in_base,
-        modal_message=modal_message
+        
     )
 
 
@@ -509,9 +564,10 @@ def viewExpense():
 #editTrip
 @app.route('/editTrip/<int:trip_id>', methods=['GET', 'POST'])
 def editTrip(trip_id):
-    modal_message = None
+    errors = False
     
     with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
         c = conn.cursor()
         
         c.execute('''
@@ -532,29 +588,32 @@ def editTrip(trip_id):
             new_end = request.form.get('end_date', '').strip()
             
             if not new_name:
-                modal_message = "Trip name cannot be empty!"
+                flash("Trip name cannot be empty!", "error")
+                errors = True
             elif not new_start or not new_end:
-                modal_message = "Dates cannot be empty!"
+                flash("Dates cannot be empty!", "error")
+                errors = True
             else:
                 try:
                     if datetime.strptime(new_start, '%Y-%m-%d') > datetime.strptime(new_end, '%Y-%m-%d'):
-                        modal_message = "End date must be after start date!"
+                        flash("End date must be after start date!", "error")
+                        errors = True
                 except:
-                    modal_message = "Invalid date format!"
+                    flash("Invalid date format!", "error")
+                    errors = True
         
-            if not modal_message:
+            if not errors:
                 c.execute('''
                     UPDATE trips
                     SET trip_name = ?, start_date = ?, end_date = ?
                     WHERE id = ?
                 ''', (new_name, new_start, new_end, trip_id))
                 conn.commit()
-                flash("Trip updated successfully", "error")
+                flash("Trip updated successfully", "success")
                 return redirect(url_for('tripSelection'))
             
     return render_template(
-        'editTrip.html', 
-        modal_message=modal_message,
+        'editTrip.html',
         trip_id=trip_id,
         trip_name=trip_name,
         start_date=start_date,
@@ -565,10 +624,15 @@ def editTrip(trip_id):
 @app.route('/deleteTrip/<int:trip_id>', methods=['POST'])
 def deleteTrip(trip_id):
     with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
         c = conn.cursor()
         
         # Delete trip and its related expenses (if you have a foreign key)
-        c.execute('DELETE FROM trips WHERE id = ?', (trip_id,))
+        c.execute('''
+                DELETE FROM trips 
+                WHERE id = ?
+            ''', (trip_id,))
+            
         conn.commit()
 
     return redirect(url_for('tripSelection'))
@@ -578,6 +642,7 @@ def deleteTrip(trip_id):
 @app.route('/deleteExpense/<int:expense_id>', methods=['POST'])
 def deleteExpense(expense_id):
     with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
         c = conn.cursor()
         
         # Delete expense
