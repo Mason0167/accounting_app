@@ -158,7 +158,7 @@ input[type="date"].input-field {
 
 .payment-option {
     width: auto;
-    display: inline-flex;
+    display: block;
     align-items: center;
     cursor: pointer;
     background-color: #e6ccff;
@@ -313,6 +313,11 @@ input[type="date"].input-field {
 .btn-equal {
     flex: 1;
     padding: 10px 16px;
+}
+
+.expense-buttons {
+    display: flex;
+    gap: 5px; /* space between buttons */
 }
 
 

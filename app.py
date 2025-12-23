@@ -209,6 +209,7 @@ def tripSelection():
         countries = []
 
         errors = False
+        
         db_trip_name = ''
         ui_trip_name = ''
         start_date = ''
@@ -279,9 +280,20 @@ def tripSelection():
         ''')
         trips_list = c.fetchall()
 
+        
         # Calculate total expenses in base currency for each trip
         trips_with_total = []
         for trip in trips_list:
+            trip_start_date = trip[2]
+            trip_end_date = trip[3]
+            
+            # convert DB dates → datetime
+            start_dt = datetime.strptime(trip_start_date, "%Y-%m-%d")
+            end_dt = datetime.strptime(trip_end_date, "%Y-%m-%d")
+            
+            start_weekday = start_dt.strftime("%a")
+            end_weekday = end_dt.strftime("%a")
+            
             trip_id = trip[0]
             c.execute('''
                 SELECT SUM(e.amount * r.rate_to_base) 
@@ -298,6 +310,8 @@ def tripSelection():
                 'trip_name': trip[1],
                 'start_date': trip[2],
                 'end_date': trip[3],
+                'start_weekday': start_weekday,
+                'end_weekday': end_weekday,
                 'flag': country_flag(trip[4]),
                 'total_in_base': total_in_base
             })
@@ -517,6 +531,7 @@ def viewExpense():
     dates = []
     categories = []
     trips = []
+    paymentMethods_list = []
     
     expenses = []
     grouped_expenses = {}
@@ -529,13 +544,14 @@ def viewExpense():
     trip_id = request.args.get('trip_id', type=int)
     selected_date = request.args.get('purchase_date')  # string like "2025-12-19"
     selected_cat = request.args.get('category_name')
+    selected_paymentMethod = request.args.get('payment_method')
 
     try:
         with sqlite3.connect(DB_FILE) as conn:
             c = conn.cursor()
 
             # Fetch all trips for dropdown
-            c.execute('SELECT id, trip_name FROM trips ORDER BY start_date')
+            c.execute('SELECT id, trip_name FROM trips ORDER BY id DESC')
             trips = [{'id': r[0], 'trip_name': r[1]} for r in c.fetchall()]
 
             
@@ -559,6 +575,16 @@ def viewExpense():
                     ORDER BY c.order_index
                 ''', (trip_id,))
                 categories = [r[0] for r in c.fetchall()]
+                
+                # Fetch all categoies that exist for this trip
+                c.execute('''
+                    SELECT DISTINCT p.method_name
+                    FROM paymentMethods p
+                    JOIN expenses e ON e.method_id = p.id
+                    WHERE e.trip_id = ?
+                    ORDER BY p.id
+                ''', (trip_id,))
+                paymentMethods_list = [r[0] for r in c.fetchall()]
 
             if trip_id:
                 # Fetch trip info if user select a trip
@@ -569,12 +595,25 @@ def viewExpense():
                         WHERE t.id = ?
                     ''', (trip_id,))
                 row = c.fetchone()
+                
                 if row:
+                    start_date = row[2]
+                    end_date = row[3]
+                    
+                    # convert DB dates → datetime
+                    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                    
+                    start_weekday = start_dt.strftime("%a")
+                    end_weekday = end_dt.strftime("%a")
+                    
                     trip = {
                         'id': row[0],
                         'trip_name': row[1],
                         'start_date': row[2],
                         'end_date': row[3],
+                        'start_weekday': start_weekday,
+                        'end_weekday': end_weekday,
                         'flag': country_flag(row[4])
                     }
                 else:
@@ -589,6 +628,7 @@ def viewExpense():
                     JOIN categories c ON e.category_id = c.id
                     JOIN currencies cu ON e.currency_id = cu.id
                     JOIN exchange_rates r ON e.currency_id = r.currency_id
+                    JOIN paymentMethods p ON e.method_id = p.id
                     WHERE e.trip_id = ?
                 '''
                 params = [trip_id]
@@ -600,15 +640,15 @@ def viewExpense():
                 if selected_cat:
                     query += ' AND c.cat_name = ? '
                     params.append(selected_cat)
+                    
+                if selected_paymentMethod:
+                    query += ' AND p.method_name = ? '
+                    params.append(selected_paymentMethod)
 
                 query += ' ORDER BY c.order_index'
 
                 c.execute(query, params)
                 rows = c.fetchall()
-                
-                print("SQL:", query)
-                print("Params:", params)
-
 
                 for e in rows:
                     expense = {
@@ -635,6 +675,7 @@ def viewExpense():
         trips=trips,
         dates=dates,
         categories=categories,
+        paymentMethods_list=paymentMethods_list,
         
         trip=trip,
         total_in_base=total_in_base,
@@ -642,9 +683,10 @@ def viewExpense():
         selected_trip=trip_id,
         selected_date=selected_date,
         selected_category=selected_cat,
+        selected_paymentMethod=selected_paymentMethod,
         
         expenses=expenses,
-        grouped_expenses=grouped_expenses,
+        grouped_expenses=grouped_expenses
         
     )
 
@@ -727,6 +769,145 @@ def deleteTrip(trip_id):
 
     return redirect(url_for('tripSelection'))
     
+#editExpense
+@app.route('/editExpense/<int:trip_id>/<int:expense_id>', methods=['GET', 'POST'])
+def editExpense(trip_id, expense_id):
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        c = conn.cursor()
+        
+        next_url = request.args.get('next')  # Get the next page from query string
+        if not next_url:
+            next_url = url_for('newExpense', trip_id=trip_id)
+        
+        
+        errors = False
+        expense_info = None
+        
+        new_purchase_date = ''
+        new_category = ''
+        new_payment_method = ''
+        new_item = ''
+        new_amount = ''
+        new_currency = ''
+        
+        if request.method == 'POST':
+            new_purchase_date = request.form.get('purchase_date', '').strip()
+            new_category = request.form.get('category', '').strip()
+            new_payment_method = request.form.get('payment_method', '').strip()
+            new_item = request.form.get('item', '').strip()
+            new_amount = request.form.get('amount', '').strip()
+            new_currency = request.form.get('currency', '').strip()
+            
+            # Validation
+            if not new_purchase_date:
+                flash("Purchase date cannot be empty!", "error")
+                errors = True
+            elif not new_category:
+                flash("Category cannot be empty!", "error")
+                errors = True
+            elif not new_payment_method:
+                flash("Please select a payment method!", "error")
+                errors = True
+            elif not new_item:
+                flash("Item cannot be empty!", "error")
+                errors = True
+            elif not new_amount:
+                flash("Amount cannot be empty!", "error")
+                errors = True
+            elif not new_currency:
+                flash("Please select a currency!", "error")
+                errors = True
+            else:
+                # Validate "amount" input
+                try:
+                    amount = round(float(new_amount), 2)  # 兩位小數
+                    if amount <= 0:
+                        flash("Amount must be greater than 0!", "error")
+                        errors = True
+                            
+                except ValueError:
+                    flash("Invalid amount!", "error")
+                    errors = True
+            
+            if not errors:
+               # Lookup IDs for foreign keys
+                c.execute('SELECT id FROM categories WHERE cat_name = ?', (new_category,))
+                category_row = c.fetchone()
+                category_id = category_row[0] if category_row else None
+
+                c.execute('SELECT id FROM paymentMethods WHERE method_name = ?', (new_payment_method,))
+                method_row = c.fetchone()
+                method_id = method_row[0] if method_row else None
+
+                c.execute('SELECT id FROM currencies WHERE code = ?', (new_currency,))
+                currency_row = c.fetchone()
+                currency_id = currency_row[0] if currency_row else None
+
+                # Make sure all IDs exist
+                if None in [category_id, method_id, currency_id]:
+                    flash("Invalid selection!", "error")
+                    errors = True
+
+                if not errors:
+                    # Now update the expense
+                    c.execute('''
+                        UPDATE expenses
+                        SET purchase_date = ?, category_id = ?, method_id = ?, item = ?, amount = ?, currency_id = ?
+                        WHERE id = ?
+                    ''', (new_purchase_date, category_id, method_id, new_item, new_amount, currency_id, expense_id))
+
+                    conn.commit()
+                    flash("Expense updated successfully!", "success")
+                    return redirect(next_url)
+        
+        
+        
+        # Fetch categories table for dropdown
+        c.execute('SELECT * FROM categories ')
+        categories_list = c.fetchall()
+        
+        # Fetch paymentMethods table for dropdown
+        c.execute('SELECT * FROM paymentMethods')
+        paymentMethods_list = c.fetchall()
+        
+        # Fetch currencies table for dropdown
+        c.execute('SELECT * FROM currencies')
+        currencies_list = c.fetchall()
+        
+        if expense_id:
+            c.execute('''
+                SELECT e.purchase_date, ca.cat_name, p.method_name, e.item, e.amount, cu.code
+                FROM expenses e
+                JOIN categories ca ON e.category_id = ca.id
+                JOIN paymentMethods p ON e.method_id = p.id
+                JOIN currencies cu ON e.currency_id = cu.id
+                
+                WHERE e.id = ?
+                AND trip_id = ?
+            ''', (expense_id, trip_id))
+            expense_info = c.fetchone()
+            
+            
+        
+        return render_template(
+        'editExpense.html',
+        trip_id=trip_id,
+        next_url=next_url,
+        
+        categories_list=categories_list,
+        paymentMethods_list=paymentMethods_list,
+        currencies_list=currencies_list,
+        
+        entered_date=expense_info[0] if expense_info else '',
+        entered_category=expense_info[1] if expense_info else '',
+        entered_paymentMethod=expense_info[2] if expense_info else '',
+        entered_item=expense_info[3] if expense_info else '',
+        entered_amount_str=expense_info[4] if expense_info else '',
+        entered_currency=expense_info[5] if expense_info else ''
+        
+    )
+        
     
 # deleteExpense
 @app.route('/deleteExpense/<int:expense_id>', methods=['POST'])
@@ -740,8 +921,7 @@ def deleteExpense(expense_id):
         conn.commit()
 
     return redirect(request.referrer or url_for('tripSelection'))
-    
-    
+
 @app.route('/downloadBackup')
 def downloadBackup():
     db_path = DB_FILE

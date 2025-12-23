@@ -75,6 +75,24 @@
                     {% endfor %}
                 </select>
             </label>
+
+            <!-- Payment Method Dropdown -->
+            <label id="paymentWrapper" style="display: {% if selected_trip %}block{% else %}none{% endif %};">
+                Filter By Payment Method:
+            </label>
+            <div class="payment-methods">
+                {% for paymentMethod in paymentMethods_list %}
+                <label class="payment-option">
+                    <input type="radio" name="payment_method" 
+                        value="{{ paymentMethod }}" 
+                        onchange="this.form.submit()"
+                        {% if paymentMethod == selected_paymentMethod|default('') %} checked {% endif %}>
+                    <span>{{ paymentMethod|title }}</span>
+                </label>
+                {% endfor %}
+            </div>
+                
+            
         </form>
 
         <!-- Trip Info Card -->
@@ -86,7 +104,7 @@
             </h3>
 
             <p class="trip-date">
-                {{ trip.start_date }} → {{ trip.end_date }}
+                {{ trip.start_date }} ({{ trip.start_weekday }}.) → {{ trip.end_date }} ({{ trip.end_weekday }}.)
             </p>
 
             <p class="trip-total">
@@ -108,12 +126,20 @@
                                     <span class="expense-text">
                                         {{ e.item|capitalize }} : {{ e.code }} {{ e.symbol }}{{ "%.2f"|format(e.amount) }}
                                     </span>
-                                    <button type="button"
-                                            class="btn btn-delete-expense btn-small"
-                                            data-id="{{ e.id }}"
-                                            data-item="{{ e.item }}">
-                                        Delete
-                                    </button>
+
+                                    <div class="expense-buttons">
+                                        <a href="{{ url_for('editExpense', trip_id=selected_trip, expense_id=e.id, next=request.full_path) }}" class="btn btn-submit btn-small">
+                                            Edit
+                                        </a>
+
+                                        <button type="button"
+                                                class="btn btn-delete-expense btn-small"
+                                                data-id="{{ e.id }}"
+                                                data-item="{{ e.item }}">
+                                            Delete
+                                        </button>
+                                    </div>
+
                                 </li>
                             {% endfor %}
                         </ul>
@@ -126,7 +152,7 @@
 
         <a href="{{ url_for('downloadBackup') }}">
         <button type="button" class="btn">
-            Download Expense Data
+            Download All Expense Data
         </button>
         </a>
     </div>

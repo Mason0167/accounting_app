@@ -120,18 +120,18 @@
                                         {{ e.item|capitalize }} : {{ e.code }} {{ e.symbol }}{{ "%.2f"|format(e.amount) }}
                                     </span>
 
-                                    <!-- <button type="button"
-                                            class="btn btn-edit-expense btn-small"
-                                            data-id="{{ e.id }}">
-                                        Edit
-                                    </button> -->
+                                    <div class="expense-buttons">
+                                        <a href="{{ url_for('editExpense', trip_id=selected_trip, expense_id=e.id, next=request.path) }}" class="btn btn-submit btn-small">
+                                            Edit
+                                        </a>
 
-                                    <button type="button"
-                                            class="btn btn-delete-expense btn-small"
-                                            data-id="{{ e.id }}"
-                                            data-item="{{ e.item }}">
-                                        Delete
-                                    </button>
+                                        <button type="button"
+                                                class="btn btn-delete-expense btn-small"
+                                                data-id="{{ e.id }}"
+                                                data-item="{{ e.item }}">
+                                            Delete
+                                        </button>
+                                    </div>
                                 </li>
                             {% endfor %}
                         </ul>
