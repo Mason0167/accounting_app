@@ -477,7 +477,7 @@ def newExpense():
         # Fetch expenses only for selected trip
         if trip_id:
             c.execute('''
-                SELECT e.id, c.cat_name, e.item, e.amount, cu.code, cu.symbol
+                SELECT e.id, e.purchase_date, c.cat_name, e.item, e.amount, cu.code, cu.symbol
                 FROM expenses e
                 JOIN categories c ON e.category_id = c.id
                 JOIN currencies cu ON e.currency_id = cu.id
@@ -489,11 +489,12 @@ def newExpense():
             for e in rows:
                 all_expenses.append({
                 'id': e[0],
-                'category': e[1],
-                'item': e[2],
-                'amount': e[3],
-                'code': e[4],
-                'symbol': e[5]
+                'purchase_date': e[1],
+                'category': e[2],
+                'item': e[3],
+                'amount': e[4],
+                'code': e[5],
+                'symbol': e[6]
                 })
     
         grouped_expenses = {}
@@ -537,6 +538,7 @@ def viewExpense():
     grouped_expenses = {}
     
     trip = None
+    payment_method = None
     
     total_in_base = 0
 
@@ -576,14 +578,12 @@ def viewExpense():
                 ''', (trip_id,))
                 categories = [r[0] for r in c.fetchall()]
                 
-                # Fetch all categoies that exist for this trip
+                # Fetch all payment methods
                 c.execute('''
-                    SELECT DISTINCT p.method_name
-                    FROM paymentMethods p
-                    JOIN expenses e ON e.method_id = p.id
-                    WHERE e.trip_id = ?
-                    ORDER BY p.id
-                ''', (trip_id,))
+                    SELECT method_name
+                    FROM paymentMethods 
+                    ORDER BY id
+                ''')
                 paymentMethods_list = [r[0] for r in c.fetchall()]
 
             if trip_id:

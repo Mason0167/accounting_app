@@ -76,7 +76,7 @@
                 </select>
             </label>
 
-            <!-- Payment Method Dropdown -->
+            <!-- Payment Method -->
             <label id="paymentWrapper" style="display: {% if selected_trip %}block{% else %}none{% endif %};">
                 Filter By Payment Method:
             </label>
@@ -84,9 +84,8 @@
                 {% for paymentMethod in paymentMethods_list %}
                 <label class="payment-option">
                     <input type="radio" name="payment_method" 
-                        value="{{ paymentMethod }}" 
-                        onchange="this.form.submit()"
-                        {% if paymentMethod == selected_paymentMethod|default('') %} checked {% endif %}>
+                        data-value="{{ paymentMethod }}"
+                        {% if paymentMethod == selected_paymentMethod %} checked {% endif %}>
                     <span>{{ paymentMethod|title }}</span>
                 </label>
                 {% endfor %}
@@ -186,6 +185,7 @@
         {% endwith %}
     });
     </script>
+
 </body>
 
 </html>
