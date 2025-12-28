@@ -38,8 +38,36 @@
                 {% endfor %}
             </div>
         </div>
-        
     </div>
+
+    <!-- Flexible Modal for Delete / Errors -->
+        <div id="flexModal" class="modal">
+            <div class="modal-content">
+                <p id="modal-text"></p>
+                <form id="modalForm" method="POST" style="display:none;">
+                    <button type="submit" class="btn btn-cancel" id="modalConfirmBtn">Yes, Delete</button>
+                    <button type="button" class="btn btn-submit" onclick="closeModal()">Cancel</button>
+                </form>
+                <button type="button" class="btn" id="modalOkBtn" style="display:none;" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+
+        <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        openModal({
+                            type: '{{ category }}',
+                            text: "{{ message|escape }}"
+                        });
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+        </script>
 </body>
 
 </html>

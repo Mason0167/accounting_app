@@ -1,7 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, get_flashed_messages, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, get_flashed_messages, send_file, session
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 import sqlite3
 import os
-from datetime import datetime
+import re
+
 
 app = Flask(__name__)
 DB_FILE = 'expenses.db'
@@ -12,6 +16,15 @@ def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
         c = conn.cursor()
+        
+        # users table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                username TEXT UNIQUE,
+                password_hash TEXT
+            )
+        ''')
         
         # trips table
         c.execute('''
@@ -168,8 +181,178 @@ def init_db():
                 
         conn.commit()
 
+
+# gatekeeper
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login', next=request.path))
+        return f(*args, **kwargs)
+    return wrapper
+    
+    
+    
+# Validate password strongness
+def is_strong_password(password):
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter"
+
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter"
+
+    if not re.search(r"[0-9]", password):
+        return False, "Password must contain at least one number"
+
+    if " " in password:
+        return False, "Password cannot contain spaces"
+
+    return True, ""
+
+
+
+# register
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    errors = False
+    
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        c = conn.cursor()
+        
+        if request.method == 'POST':
+            uiUsername = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            
+            # Validation
+            if not uiUsername:
+                flash("Username cannot be empty!", "error")
+                errors = True
+            elif not password:
+                flash("Password cannot be empty!", "error")
+                errors = True
+            elif not confirm_password:
+                flash("Confirm password cannot be empty!", "error")
+                errors = True
+            elif not password == confirm_password:
+                flash("Password must match each other!", "error")
+                errors = True
+            else:
+                strong, msg = is_strong_password(password)
+                if not strong:
+                    flash(msg, "error")
+                    errors = True
+                else:
+                    # Validate username
+                    c.execute('''
+                           SELECT username FROM users WHERE username = ?
+                       ''', (uiUsername,))
+                    dbUsername = c.fetchone()
+                    
+                    if dbUsername:
+                        flash("Username already exists!", "error")
+                        errors = True
+            
+            if not errors:
+                try:
+                    hashPass = generate_password_hash(password)
+                    
+                    c.execute('''
+                            INSERT INTO users (username, password_hash) VALUES (?, ?)
+                            ''', (uiUsername, hashPass)
+                        )
+                    conn.commit()
+                    flash("Registration successful!", "success")
+                    return redirect(url_for('login'))
+            
+                except sqlite3.DatabaseError:
+                        flash("Database error occurred.", "error")
+        
+    return render_template(
+        'register.html',
+        errors=errors
+    )
+        
+
+
+#login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    errors = False
+    
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        c = conn.cursor()
+        
+        if request.method == 'POST':
+            uiUsername = request.form.get('username', '').strip()
+            uiPassword = request.form.get('password', '').strip()
+            next_page = request.args.get('next')
+            
+            # Validation
+            if not uiUsername:
+                flash("Username cannot be empty!", "error")
+                errors = True
+            elif not uiPassword:
+                flash("Password cannot be empty!", "error")
+                errors = True
+            else:
+                # Validate username
+                c.execute('''
+                       SELECT username FROM users WHERE username = ?
+                   ''', (uiUsername,))
+                dbUsername = c.fetchone()
+                
+                if not dbUsername:
+                    flash("Username not found!", "error")
+                    errors = True
+            
+            if not errors:
+                try:
+                    # get password
+                    c.execute('''
+                           SELECT id, password_hash 
+                           FROM users 
+                           WHERE username = ?
+                       ''', (uiUsername,))
+                    dbPassword = c.fetchone()
+                    user_id = dbPassword[0]
+                    pass_hashed = dbPassword[1]
+                    
+                
+                    if check_password_hash(pass_hashed, uiPassword):
+                        flash("Login successful!", "success")
+                        session['user_id'] = user_id
+                        session['username'] = uiUsername
+
+                        return redirect(next_page or url_for('index'))
+                    else:
+                        flash("Wrong password!", "error")
+            
+                except sqlite3.DatabaseError:
+                        flash("Database error occurred.", "error")
+        
+    return render_template(
+        'login.html',
+        errors=errors
+    )
+
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+    
+
+
 # Index
 @app.route('/')
+@login_required
 def index():
      with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
@@ -202,6 +385,7 @@ def index():
 
 # tripSelection
 @app.route('/tripSelection', methods=['GET', 'POST'])
+@login_required
 def tripSelection():
     with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
@@ -331,6 +515,7 @@ def tripSelection():
     
 # newExpense
 @app.route('/newExpense', methods=['GET', 'POST'])
+@login_required
 def newExpense():
     with sqlite3.connect(DB_FILE) as conn:
         c = conn.cursor()
@@ -482,7 +667,7 @@ def newExpense():
                 JOIN categories c ON e.category_id = c.id
                 JOIN currencies cu ON e.currency_id = cu.id
                 WHERE trip_id = ? 
-                ORDER BY c.order_index
+                ORDER BY e.purchase_date DESC
             ''', (trip_id,))
             rows = c.fetchall()
 
@@ -500,8 +685,8 @@ def newExpense():
         grouped_expenses = {}
     
         for e in all_expenses:
-            cat = e['category']
-            grouped_expenses.setdefault(cat, []).append(e)
+            date = e['purchase_date']
+            grouped_expenses.setdefault(date, []).append(e)
     
     return render_template(
         'newExpense.html', 
@@ -526,6 +711,7 @@ def newExpense():
 
 # viewExpense
 @app.route('/viewExpense')
+@login_required
 def viewExpense():
     errors = False
     
@@ -689,12 +875,12 @@ def viewExpense():
         grouped_expenses=grouped_expenses
         
     )
-
-
-
+    
+    
 
 #editTrip
 @app.route('/editTrip/<int:trip_id>', methods=['GET', 'POST'])
+@login_required
 def editTrip(trip_id):
     errors = False
     
@@ -754,6 +940,7 @@ def editTrip(trip_id):
     
 # deleteTrip
 @app.route('/deleteTrip/<int:trip_id>', methods=['POST'])
+@login_required
 def deleteTrip(trip_id):
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
@@ -771,6 +958,7 @@ def deleteTrip(trip_id):
     
 #editExpense
 @app.route('/editExpense/<int:trip_id>/<int:expense_id>', methods=['GET', 'POST'])
+@login_required
 def editExpense(trip_id, expense_id):
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
@@ -887,8 +1075,6 @@ def editExpense(trip_id, expense_id):
                 AND trip_id = ?
             ''', (expense_id, trip_id))
             expense_info = c.fetchone()
-            
-            
         
         return render_template(
         'editExpense.html',
@@ -905,12 +1091,12 @@ def editExpense(trip_id, expense_id):
         entered_item=expense_info[3] if expense_info else '',
         entered_amount_str=expense_info[4] if expense_info else '',
         entered_currency=expense_info[5] if expense_info else ''
-        
     )
         
     
 # deleteExpense
 @app.route('/deleteExpense/<int:expense_id>', methods=['POST'])
+@login_required
 def deleteExpense(expense_id):
     with sqlite3.connect(DB_FILE) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
@@ -923,6 +1109,7 @@ def deleteExpense(expense_id):
     return redirect(request.referrer or url_for('tripSelection'))
 
 @app.route('/downloadBackup')
+@login_required
 def downloadBackup():
     db_path = DB_FILE
 

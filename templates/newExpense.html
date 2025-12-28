@@ -110,9 +110,9 @@
         {% if grouped_expenses %}
         <h3>All Expenses For {{ row.trip_name|title }} {{ row.flag }}</h3>
             <div class="categories-container">
-                {% for cat, expenses in grouped_expenses.items() %}
+                {% for date, expenses in grouped_expenses.items() %}
                     <div class="category-card">
-                        <h3 class="category-title">{{ cat|capitalize }}</h3>
+                        <h3 class="category-title">{{ date }}</h3>
                         <ul class="expense-list">
                             {% for e in expenses %}
                                 <li class="expense-row">
