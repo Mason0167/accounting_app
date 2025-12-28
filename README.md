@@ -9,8 +9,10 @@ Track your daily expenses, view totals, and manage trips easily.
 - Mobile-friendly responsive layout
 - Backup your database
 - Flash messages and modals for feedback
+- Secure user registration and login system
 
 ## Requirements
 - Python 3.14+
 - Flask
 - SQLite3
+- HTML, CSS, JavaScript
